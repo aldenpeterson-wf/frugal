@@ -6,6 +6,8 @@ package event
 import (
 	"bytes"
 	"fmt"
+	"io"
+
 	"git.apache.org/thrift.git/lib/go/thrift"
 	"github.com/Workiva/frugal-go"
 )
@@ -15,29 +17,29 @@ var _ = thrift.ZERO
 var _ = fmt.Printf
 var _ = bytes.Equal
 
-
 type FFoo interface {
 	// Ping the server.
 	Ping(frugal.Context) (err error)
 	// Blah the server.
 	Blah(frugal.Context, int32, string, *Event) (r int64, err error)
+	AsyncBlah(frugal.Context, chan int64, int32, string, *Event) chan error
 }
 
 type FFooClient struct {
 	TTransport       thrift.TTransport
 	FProtocolFactory frugal.FProtocolFactory
-	InputProtocol   frugal.FProtocol
-	OutputProtocol  frugal.FProtocol
-	SeqId           int32
+	InputProtocol    frugal.FProtocol
+	OutputProtocol   frugal.FProtocol
+	SeqId            int32
 }
 
 func NewFFooClientFactory(t thrift.TTransport, f frugal.FProtocolFactory) *FFooClient {
 	return &FFooClient{
 		TTransport:       t,
 		FProtocolFactory: f,
-		InputProtocol:   f.GetProtocol(t),
-		OutputProtocol:  f.GetProtocol(t),
-		SeqId:           0,
+		InputProtocol:    f.GetProtocol(t),
+		OutputProtocol:   f.GetProtocol(t),
+		SeqId:            0,
 	}
 }
 
@@ -45,9 +47,9 @@ func NewFFooClientProtocol(t thrift.TTransport, iprot, oprot frugal.FProtocol) *
 	return &FFooClient{
 		TTransport:       t,
 		FProtocolFactory: nil,
-		InputProtocol:   iprot,
-		OutputProtocol:  oprot,
-		SeqId:           0,
+		InputProtocol:    iprot,
+		OutputProtocol:   oprot,
+		SeqId:            0,
 	}
 }
 
@@ -72,8 +74,7 @@ func (f *FFooClient) sendPing(ctx frugal.Context) (err error) {
 	if err = oprot.WriteMessageBegin("ping", thrift.CALL, f.SeqId); err != nil {
 		return
 	}
-	args := FooPingArgs{
-	}
+	args := FooPingArgs{}
 	if err = args.Write(oprot); err != nil {
 		return
 	}
@@ -97,11 +98,11 @@ func (f *FFooClient) recvPing(ctx frugal.Context) (err error) {
 		return
 	}
 	if method != "ping" {
-	err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "ping failed: wrong method name")
+		err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "ping failed: wrong method name")
 		return
 	}
 	if f.SeqId != seqId {
-	err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "ping failed: out of sequence response")
+		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "ping failed: out of sequence response")
 		return
 	}
 	if mTypeId == thrift.EXCEPTION {
@@ -118,7 +119,7 @@ func (f *FFooClient) recvPing(ctx frugal.Context) (err error) {
 		return
 	}
 	if mTypeId != thrift.REPLY {
-	err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "ping failed: invalid message type")
+		err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "ping failed: invalid message type")
 		return
 	}
 	result := FooPingResult{}
@@ -153,8 +154,8 @@ func (f *FFooClient) sendBlah(ctx frugal.Context, num int32, str string, event *
 		return
 	}
 	args := FooBlahArgs{
-		Num: num,
-		Str: str,
+		Num:   num,
+		Str:   str,
 		Event: event,
 	}
 	if err = args.Write(oprot); err != nil {
@@ -180,11 +181,11 @@ func (f *FFooClient) recvBlah(ctx frugal.Context) (r int64, err error) {
 		return
 	}
 	if method != "blah" {
-	err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "blah failed: wrong method name")
+		err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "blah failed: wrong method name")
 		return
 	}
 	if f.SeqId != seqId {
-	err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "blah failed: out of sequence response")
+		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "blah failed: out of sequence response")
 		return
 	}
 	if mTypeId == thrift.EXCEPTION {
@@ -201,7 +202,7 @@ func (f *FFooClient) recvBlah(ctx frugal.Context) (r int64, err error) {
 		return
 	}
 	if mTypeId != thrift.REPLY {
-	err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "blah failed: invalid message type")
+		err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "blah failed: invalid message type")
 		return
 	}
 	result := FooBlahResult{}
@@ -214,6 +215,114 @@ func (f *FFooClient) recvBlah(ctx frugal.Context) (r int64, err error) {
 	if result.Awe != nil {
 		err = result.Awe
 		return
+
+	}
+	r = result.GetSuccess()
+	return
+}
+
+func (f *FFooClient) AsyncBlah(ctx frugal.Context, results chan int64, num int32, str string, event *Event) chan error {
+	errors := make(chan error, 1)
+	if err := f.sendAsyncBlah(ctx, num, str, event); err != nil {
+		errors <- err
+		return errors
+	}
+	go func() {
+		for {
+			result, err := f.recvAsyncBlah(ctx, results)
+			if err != nil {
+				switch x := err.(type) {
+				case thrift.TProtocolException:
+					if x.TypeId() != 255 {
+						errors <- err
+					}
+				}
+				close(errors)
+				close(results)
+				return
+			}
+			results <- result
+		}
+	}()
+	return errors
+}
+
+func (f *FFooClient) sendAsyncBlah(ctx frugal.Context, num int32, str string, event *Event) (err error) {
+	oprot := f.OutputProtocol
+	if oprot == nil {
+		oprot = f.FProtocolFactory.GetProtocol(f.TTransport)
+		f.OutputProtocol = oprot
+	}
+	if err = f.OutputProtocol.WriteRequestHeader(ctx); err != nil {
+		return
+	}
+	f.SeqId++
+	if err = oprot.WriteMessageBegin("asyncBlah", thrift.CALL, f.SeqId); err != nil {
+		return
+	}
+	args := FooAsyncBlahArgs{
+		Num:   num,
+		Str:   str,
+		Event: event,
+	}
+	if err = args.Write(oprot); err != nil {
+		return
+	}
+	if err = oprot.WriteMessageEnd(); err != nil {
+		return
+	}
+	return oprot.Flush()
+}
+
+func (f *FFooClient) recvAsyncBlah(ctx frugal.Context) (r int64, err error) {
+	iprot := f.InputProtocol
+	if iprot == nil {
+		iprot = f.FProtocolFactory.GetProtocol(f.TTransport)
+		f.InputProtocol = iprot
+	}
+	if err = iprot.ReadResponseHeader(ctx); err != nil {
+		return
+	}
+	method, mTypeId, seqId, err := iprot.ReadMessageBegin()
+	if err != nil {
+		return
+	}
+	if method != "asyncBlah" {
+		err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "asyncBlah failed: wrong method name")
+		return
+	}
+	if f.SeqId != seqId {
+		err = thrift.NewTApplicationException(thrift.BAD_SEQUENCE_ID, "asyncBlah failed: out of sequence response")
+		return
+	}
+	if mTypeId == thrift.EXCEPTION {
+		error0 := thrift.NewTApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
+		var error1 error
+		error1, err = error0.Read(iprot)
+		if err != nil {
+			return
+		}
+		if err = iprot.ReadMessageEnd(); err != nil {
+			return
+		}
+		err = error1
+		return
+	}
+	if mTypeId != thrift.REPLY {
+		err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "asyncBlah failed: invalid message type")
+		return
+	}
+	result := FooAsyncBlahResult{}
+	if err = result.Read(iprot); err != nil {
+		return
+	}
+	if err = iprot.ReadMessageEnd(); err != nil {
+		return
+	}
+	if result.Awe != nil {
+		err = result.Awe
+		return
+
 	}
 	r = result.GetSuccess()
 	return
@@ -236,6 +345,7 @@ func NewFFooProcessor(handler FFoo) *FFooProcessor {
 	}
 	p.processorMap["ping"] = &fooFPing{handler: handler}
 	p.processorMap["blah"] = &fooFBlah{handler: handler}
+	p.processorMap["asyncBlah"] = &fooFAsyncBlah{handler: handler}
 	return p
 }
 
@@ -280,7 +390,7 @@ func (p *fooFPing) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 	iprot.ReadMessageEnd()
 	result := FooPingResult{}
 	var err2 error
-	if err2 = p.handler.Ping(ctx, ); err2 != nil {
+	if err2 = p.handler.Ping(ctx); err2 != nil {
 		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ping: "+err2.Error())
 		oprot.WriteMessageBegin("ping", thrift.EXCEPTION, seqId)
 		x.Write(oprot)
@@ -365,3 +475,76 @@ func (p *fooFBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 	return true, err
 }
 
+type fooFAsyncBlah struct {
+	handler FFoo
+}
+
+func (p *fooFAsyncBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.FProtocol) (success bool, err thrift.TException) {
+	args := FooAsyncBlahArgs{}
+	if err = args.Read(iprot); err != nil {
+		iprot.ReadMessageEnd()
+		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+		oprot.WriteMessageBegin("asyncBlah", thrift.EXCEPTION, seqId)
+		x.Write(oprot)
+		oprot.WriteMessageEnd()
+		oprot.Flush()
+		return false, err
+	}
+
+	iprot.ReadMessageEnd()
+	resultChan := make(chan i64)
+
+	go func() {
+		errChan := p.handler.AsyncBlah(ctx, resultChan, args.Num, args.Str, args.Event)
+		var err error
+		for {
+			result := FooAsyncBlahResult{}
+			select {
+			case r, ok := <-resultChan:
+				if !ok {
+					x := thrift.NewTProtocolExceptionWithType(255, io.EOF)
+					oprot.WriteMessageBegin("asyncBlah", thrift.EXCEPTION, seqId)
+					x.Write(oprot)
+					oprot.WriteMessageEnd()
+					oprot.Flush()
+					return
+				}
+				result.Success = &r
+			case err2 := <-errChan:
+				switch v := err2.(type) {
+				case *AwesomeException:
+					result.Awe = v
+					err = err2
+				default:
+					x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing asyncBlah: "+v.Error())
+					oprot.WriteMessageBegin("asyncBlah", thrift.EXCEPTION, seqId)
+					x.Write(oprot)
+					oprot.WriteMessageEnd()
+					oprot.Flush()
+					return
+				}
+			}
+
+			if err2 := oprot.WriteResponseHeader(ctx); err2 != nil {
+				err = err2
+			}
+			if err2 = oprot.WriteMessageBegin("asyncBlah", thrift.REPLY, seqId); err2 != nil {
+				err = err2
+			}
+			if err2 = result.Write(oprot); err == nil && err2 != nil {
+				err = err2
+			}
+			if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+				err = err2
+			}
+			if err2 = oprot.Flush(); err == nil && err2 != nil {
+				err = err2
+			}
+			if err != nil {
+				return
+			}
+		}
+
+	}()
+	return true, nil
+}

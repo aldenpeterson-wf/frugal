@@ -37,6 +37,8 @@ service Foo {
 
     /**@ Blah the server. */
     i64 blah(1:i32 num, 2:string Str, 3:Event event) throws (1:AwesomeException awe),
+
+    async i64 asyncBlah(1:i32 num, 2:string str, 3:Event event) throws (1:AwesomeException awe),
 }
 
 /**@
