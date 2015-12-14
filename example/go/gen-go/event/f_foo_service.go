@@ -6,6 +6,7 @@ package event
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"sync"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -34,56 +35,61 @@ type FFooServer interface {
 }
 
 type FFooClient struct {
-	TTransport       thrift.TTransport
+	FTransport       frugal.FTransport
 	FProtocolFactory frugal.FProtocolFactory
 	InputProtocol    frugal.FProtocol
 	OutputProtocol   frugal.FProtocol
 	mu               sync.Mutex
 }
 
-func NewFFooClientFactory(t thrift.TTransport, f frugal.FProtocolFactory) *FFooClient {
+func NewFFooClientFactory(t frugal.FTransport, f frugal.FProtocolFactory) (*FFooClient, error) {
+	if err := t.StartDispatchers(frugal.NewClientRegistry()); err != nil {
+		return nil, err
+	}
 	return &FFooClient{
-		TTransport:       t,
+		FTransport:       t,
 		FProtocolFactory: f,
 		InputProtocol:    f.GetProtocol(t),
 		OutputProtocol:   f.GetProtocol(t),
-	}
+	}, nil
 }
 
 // Ping the server.
 func (f *FFooClient) Ping(ctx frugal.Context) (err error) {
 	oprot := f.OutputProtocol
 	if oprot == nil {
-		oprot = f.FProtocolFactory.GetProtocol(f.TTransport)
+		oprot = f.FProtocolFactory.GetProtocol(f.FTransport)
 		f.OutputProtocol = oprot
 	}
 	errorC := make(chan error, 1)
 	resultC := make(chan struct{}, 1)
-	oprot.RegisterContext(ctx, f.FProtocolFactory, nil, recvPingHandler(resultC, errorC))
+	if err = f.FTransport.Register(ctx, f.FProtocolFactory, nil, recvPingHandler(ctx, resultC, errorC)); err != nil {
+		return
+	}
 	if err = f.OutputProtocol.WriteRequestHeader(ctx); err != nil {
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	f.mu.Lock()
 	if err = oprot.WriteMessageBegin("ping", thrift.CALL, 0); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	args := FooPingArgs{}
 	if err = args.Write(oprot); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	if err = oprot.WriteMessageEnd(); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	if err = oprot.Flush(); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	f.mu.Unlock()
@@ -92,20 +98,24 @@ func (f *FFooClient) Ping(ctx frugal.Context) (err error) {
 	case err = <-errorC:
 		return
 	case <-resultC:
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 		// TODO: add timeout
 	}
 }
 
-func recvPingHandler(resultC chan<- struct{}, errorC chan<- error) frugal.AsyncCallback {
+func recvPingHandler(ctx frugal.Context, resultC chan<- struct{}, errorC chan<- error) frugal.AsyncCallback {
 	return func(iprot frugal.FProtocol, err error) error {
 		if err != nil {
 			errorC <- err
 			return nil
 		}
 
-		method, mTypeId, seqId, err := iprot.ReadMessageBegin()
+		if err := iprot.ReadResponseHeader(ctx); err != nil {
+			errorC <- err
+			return nil
+		}
+		method, mTypeId, _, err := iprot.ReadMessageBegin()
 		if err != nil {
 			errorC <- err
 			return nil
@@ -154,20 +164,22 @@ func recvPingHandler(resultC chan<- struct{}, errorC chan<- error) frugal.AsyncC
 func (f *FFooClient) Blah(ctx frugal.Context, num int32, str string, event *Event) (r int64, err error) {
 	oprot := f.OutputProtocol
 	if oprot == nil {
-		oprot = f.FProtocolFactory.GetProtocol(f.TTransport)
+		oprot = f.FProtocolFactory.GetProtocol(f.FTransport)
 		f.OutputProtocol = oprot
 	}
 	errorC := make(chan error, 1)
 	resultC := make(chan int64, 1)
-	oprot.RegisterContext(ctx, f.FProtocolFactory, nil, recvBlahHandler(resultC, errorC))
+	if err = f.FTransport.Register(ctx, f.FProtocolFactory, nil, recvBlahHandler(ctx, resultC, errorC)); err != nil {
+		return
+	}
 	if err = f.OutputProtocol.WriteRequestHeader(ctx); err != nil {
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	f.mu.Lock()
 	if err = oprot.WriteMessageBegin("blah", thrift.CALL, 0); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	args := FooBlahArgs{
@@ -177,17 +189,17 @@ func (f *FFooClient) Blah(ctx frugal.Context, num int32, str string, event *Even
 	}
 	if err = args.Write(oprot); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	if err = oprot.WriteMessageEnd(); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	if err = oprot.Flush(); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	f.mu.Unlock()
@@ -196,20 +208,24 @@ func (f *FFooClient) Blah(ctx frugal.Context, num int32, str string, event *Even
 	case err = <-errorC:
 		return
 	case r = <-resultC:
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 		// TODO: add timeout
 	}
 }
 
-func recvBlahHandler(resultC chan<- int64, errorC chan<- error) frugal.AsyncCallback {
+func recvBlahHandler(ctx frugal.Context, resultC chan<- int64, errorC chan<- error) frugal.AsyncCallback {
 	return func(iprot frugal.FProtocol, err error) error {
 		if err != nil {
 			errorC <- err
 			return err
 		}
 
-		method, mTypeId, seqId, err := iprot.ReadMessageBegin()
+		if err := iprot.ReadResponseHeader(ctx); err != nil {
+			errorC <- err
+			return nil
+		}
+		method, mTypeId, _, err := iprot.ReadMessageBegin()
 		if err != nil {
 			errorC <- err
 			return err
@@ -260,22 +276,24 @@ func recvBlahHandler(resultC chan<- int64, errorC chan<- error) frugal.AsyncCall
 	}
 }
 
-func (f *FFooClient) AsyncBlah(ctx frugal.Context, num int32, str string, event *Event, callback func(int64), errCallback func(error)) (sub *frugal.AsyncSubscription, err error) {
+func (f *FFooClient) AsyncBlah(ctx frugal.Context, num int32, str string, event *Event, callback func(int64), onDisconnect func(error)) (sub *frugal.AsyncSubscription, err error) {
 	oprot := f.OutputProtocol
 	if oprot == nil {
-		oprot = f.FProtocolFactory.GetProtocol(f.TTransport)
+		oprot = f.FProtocolFactory.GetProtocol(f.FTransport)
 		f.OutputProtocol = oprot
 	}
 	errorC := make(chan error, 1)
-	oprot.RegisterContext(ctx, f.FProtocolFactory, asyncAckHandler(errorC), recvAsyncBlahHandler(ctx, oprot, callback, errCallback))
+	if err = f.FTransport.Register(ctx, f.FProtocolFactory, asyncAckHandler(ctx, errorC), recvAsyncBlahHandler(ctx, oprot, callback, onDisconnect)); err != nil {
+		return
+	}
 	if err = f.OutputProtocol.WriteRequestHeader(ctx); err != nil {
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	f.mu.Lock()
 	if err = oprot.WriteMessageBegin("asyncBlah", thrift.CALL, 0); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	args := FooBlahArgs{
@@ -285,17 +303,17 @@ func (f *FFooClient) AsyncBlah(ctx frugal.Context, num int32, str string, event 
 	}
 	if err = args.Write(oprot); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	if err = oprot.WriteMessageEnd(); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	if err = oprot.Flush(); err != nil {
 		f.mu.Unlock()
-		oprot.UnregisterContext(ctx)
+		f.FTransport.Unregister(ctx)
 		return
 	}
 	f.mu.Unlock()
@@ -303,30 +321,36 @@ func (f *FFooClient) AsyncBlah(ctx frugal.Context, num int32, str string, event 
 	select {
 	case err = <-errorC:
 		if err != nil {
+			f.FTransport.Unregister(ctx)
 			return
 		}
 		// TODO: add timeout
 	}
 
-	sub = frugal.NewAsyncSubscription(ctx, oprot)
+	sub = frugal.NewAsyncSubscription(ctx, f.FTransport)
 	return
 }
 
-func recvAsyncBlahHandler(ctx frugal.Context, oprot frugal.FProtocol, callback func(int64), errCallback func(error)) frugal.AsyncCallback {
+func recvAsyncBlahHandler(ctx frugal.Context, oprot frugal.FProtocol, callback func(int64), onDisconnect func(error)) frugal.AsyncCallback {
 	return func(iprot frugal.FProtocol, err error) error {
 		if err != nil {
-			errCallback(err)
+			onDisconnect(err)
 			return err
 		}
 
-		method, mTypeId, seqId, err := iprot.ReadMessageBegin()
+		if err := iprot.ReadResponseHeader(ctx); err != nil {
+			fmt.Println("error reading header", err)
+			onDisconnect(err)
+			return err
+		}
+		method, mTypeId, _, err := iprot.ReadMessageBegin()
 		if err != nil {
-			errCallback(err)
+			onDisconnect(err)
 			return err
 		}
 		if method != "asyncBlah" {
 			err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "asyncBlah failed: wrong method name")
-			errCallback(err)
+			onDisconnect(err)
 			return err
 		}
 		if mTypeId == thrift.EXCEPTION {
@@ -334,34 +358,38 @@ func recvAsyncBlahHandler(ctx frugal.Context, oprot frugal.FProtocol, callback f
 			var error1 error
 			error1, err = error0.Read(iprot)
 			if err != nil {
-				errCallback(err)
+				onDisconnect(err)
 				return err
 			}
 			if err = iprot.ReadMessageEnd(); err != nil {
-				errCallback(err)
+				onDisconnect(err)
 				return err
 			}
 			err = error1
-			errCallback(err)
+			onDisconnect(err)
 			return err
+		}
+		if mTypeId == frugal.ACK {
+			onDisconnect(nil)
+			return io.EOF
 		}
 		if mTypeId != thrift.REPLY {
 			err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "asyncBlah failed: invalid message type")
-			errCallback(err)
+			onDisconnect(err)
 			return err
 		}
 		result := FooBlahResult{}
 		if err = result.Read(iprot); err != nil {
-			errCallback(err)
+			onDisconnect(err)
 			return err
 		}
 		if err = iprot.ReadMessageEnd(); err != nil {
-			errCallback(err)
+			onDisconnect(err)
 			return err
 		}
 
 		if result.Awe != nil {
-			errCallback(result.Awe)
+			onDisconnect(result.Awe)
 			return result.Awe
 		}
 		callback(result.GetSuccess())
@@ -369,10 +397,18 @@ func recvAsyncBlahHandler(ctx frugal.Context, oprot frugal.FProtocol, callback f
 	}
 }
 
-func asyncAckHandler(errorC chan<- error) frugal.AsyncCallback {
+func asyncAckHandler(ctx frugal.Context, errorC chan<- error) frugal.AsyncCallback {
 	return func(iprot frugal.FProtocol, err error) error {
+		if err := iprot.ReadResponseHeader(ctx); err != nil {
+			errorC <- err
+			return err
+		}
 		_, mTypeId, _, err := iprot.ReadMessageBegin()
 		if err != nil {
+			errorC <- err
+			return err
+		}
+		if err = iprot.ReadMessageEnd(); err != nil {
 			errorC <- err
 			return err
 		}
@@ -391,7 +427,7 @@ type FFooProcessor struct {
 	handler      FFooServer
 	readMu       *sync.Mutex
 	writeMu      *sync.Mutex
-	errors       chan<- error
+	errors       chan error
 }
 
 func (p *FFooProcessor) GetProcessorFunction(key string) (processor frugal.FProcessorFunction, ok bool) {
@@ -399,9 +435,10 @@ func (p *FFooProcessor) GetProcessorFunction(key string) (processor frugal.FProc
 	return
 }
 
-func NewFFooProcessor(handler FFooServer, errors chan<- error) *FFooProcessor {
+func NewFFooProcessor(handler FFooServer) *FFooProcessor {
 	readMu := &sync.Mutex{}
 	writeMu := &sync.Mutex{}
+	errors := make(chan error, 1)
 	p := &FFooProcessor{
 		handler:      handler,
 		processorMap: make(map[string]frugal.FProcessorFunction),
@@ -415,23 +452,27 @@ func NewFFooProcessor(handler FFooServer, errors chan<- error) *FFooProcessor {
 	return p
 }
 
-func (p *FFooProcessor) Process(iprot, oprot frugal.FProtocol) bool {
+func (p *FFooProcessor) Errors() <-chan error {
+	return p.errors
+}
+
+func (p *FFooProcessor) Process(iprot, oprot frugal.FProtocol) {
 	p.readMu.Lock()
 	ctx, err := iprot.ReadRequestHeader()
 	if err != nil {
 		p.readMu.Unlock()
 		p.errors <- err
-		return false
+		return
 	}
 	name, _, seqId, err := iprot.ReadMessageBegin()
 	if err != nil {
 		p.readMu.Unlock()
 		p.errors <- err
-		return false
+		return
 	}
 	if processor, ok := p.GetProcessorFunction(name); ok {
 		processor.Process(ctx, seqId, iprot, oprot)
-		return true
+		return
 	}
 	iprot.Skip(thrift.STRUCT)
 	iprot.ReadMessageEnd()
@@ -444,7 +485,7 @@ func (p *FFooProcessor) Process(iprot, oprot frugal.FProtocol) bool {
 	oprot.Flush()
 	p.writeMu.Unlock()
 	p.errors <- x3
-	return false
+	return
 }
 
 type fooFPing struct {
@@ -606,6 +647,9 @@ func (p *fooFAsyncBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot fr
 	// Ack
 	var err2 error
 	p.writeMu.Lock()
+	if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
+		err = err2
+	}
 	if err2 = oprot.WriteMessageBegin("asyncBlah", frugal.ACK, seqId); err2 != nil {
 		err = err2
 	}
@@ -625,9 +669,13 @@ func (p *fooFAsyncBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot fr
 	go func() {
 		err := p.handler.AsyncBlah(ctx, args.Num, args.Str, args.Event, p.wrap(callback))
 		if err != nil {
+			// TODO: Send error
 		} else {
 			var err2 error
 			p.writeMu.Lock()
+			if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
+				err = err2
+			}
 			if err2 = oprot.WriteMessageBegin("asyncBlah", frugal.ACK, seqId); err2 != nil {
 				err = err2
 			}

@@ -7,9 +7,7 @@ import (
 	"os"
 	"time"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
 	"github.com/Workiva/frugal-go"
-	"github.com/Workiva/thrift-nats/thrift_nats"
 	"github.com/nats-io/nats"
 
 	"github.com/Workiva/frugal/example/go/gen-go/event"
@@ -24,45 +22,20 @@ func Usage() {
 func main() {
 	flag.Usage = Usage
 	var (
-		client   = flag.Bool("client", false, "Run client")
-		server   = flag.Bool("server", false, "Run server")
-		pub      = flag.Bool("pub", false, "Run publisher")
-		sub      = flag.Bool("sub", false, "Run subscriber")
-		protocol = flag.String("P", "binary", "Specify the protocol (binary, compact, json, simplejson)")
-		framed   = flag.Bool("framed", false, "Use framed transport")
-		buffered = flag.Bool("buffered", false, "Use buffered transport")
-		addr     = flag.String("addr", nats.DefaultURL, "NATS address")
-		secure   = flag.Bool("secure", false, "Use tls secure transport")
+		client = flag.Bool("client", false, "Run client")
+		server = flag.Bool("server", false, "Run server")
+		pub    = flag.Bool("pub", false, "Run publisher")
+		sub    = flag.Bool("sub", false, "Run subscriber")
+		//protocol = flag.String("P", "binary", "Specify the protocol (binary, compact, json, simplejson)")
+		//buffered = flag.Bool("buffered", false, "Use buffered transport")
+		addr   = flag.String("addr", nats.DefaultURL, "NATS address")
+		secure = flag.Bool("secure", false, "Use tls secure transport")
 	)
 	flag.Parse()
 
 	fprotocolFactory := frugal.NewFBinaryProtocolFactoryDefault()
-	var tprotocolFactory thrift.TProtocolFactory
-	switch *protocol {
-	case "compact":
-		tprotocolFactory = thrift.NewTCompactProtocolFactory()
-	case "simplejson":
-		tprotocolFactory = thrift.NewTSimpleJSONProtocolFactory()
-	case "json":
-		tprotocolFactory = thrift.NewTJSONProtocolFactory()
-	case "binary", "":
-		tprotocolFactory = thrift.NewTBinaryProtocolFactoryDefault()
-	default:
-		fmt.Fprint(os.Stderr, "Invalid protocol specified", protocol, "\n")
-		Usage()
-		os.Exit(1)
-	}
 
-	var transportFactory thrift.TTransportFactory
-	if *buffered {
-		transportFactory = thrift.NewTBufferedTransportFactory(8192)
-	} else {
-		transportFactory = thrift.NewTTransportFactory()
-	}
-
-	if *framed {
-		transportFactory = thrift.NewTFramedTransportFactory(transportFactory)
-	}
+	transportFactory := frugal.NewFTransportFactory()
 
 	natsOptions := nats.DefaultOptions
 	natsOptions.Servers = []string{*addr}
@@ -86,11 +59,11 @@ func main() {
 	}
 
 	if *sub {
-		if err := runSubscriber(conn, tprotocolFactory, transportFactory); err != nil {
+		if err := runSubscriber(conn, fprotocolFactory); err != nil {
 			fmt.Println("error running subscriber:", err)
 		}
 	} else if *pub {
-		if err := runPublisher(conn, tprotocolFactory, transportFactory); err != nil {
+		if err := runPublisher(conn, fprotocolFactory); err != nil {
 			fmt.Println("error running publisher:", err)
 		}
 	}
@@ -98,28 +71,40 @@ func main() {
 
 // Client handler
 func handleClient(client *event.FFooClient) (err error) {
-	ctx := frugal.NewContext("")
+	client.Ping(frugal.NewContext(""))
 	event := &event.Event{Message: "hello, world!"}
+	ctx := frugal.NewContext("")
 	result, err := client.Blah(ctx, 100, "awesomesauce", event)
 	fmt.Printf("Blah = %d\n", result)
-	fmt.Println(err)
 	fmt.Println(ctx.ResponseHeader("foo"))
 	fmt.Printf("%+v\n", ctx)
+	ctx = frugal.NewContext("")
+	client.AsyncBlah(ctx, 100, "awesomesauce", event, func(result int64) {
+		fmt.Println("async result", result)
+	}, func(err error) {
+		fmt.Println("async error", err)
+	})
+
+	time.Sleep(5 * time.Second)
 	return err
 }
 
 // Client runner
-func runClient(conn *nats.Conn, transportFactory thrift.TTransportFactory, protocolFactory frugal.FProtocolFactory) error {
-	transport, err := thrift_nats.NATSTransportFactory(conn, "foo", time.Second, time.Second)
+func runClient(conn *nats.Conn, transportFactory frugal.FTransportFactory, protocolFactory frugal.FProtocolFactory) error {
+	transport, err := frugal.NewNatsServiceTTransport(conn, "foo", time.Second, -1)
 	if err != nil {
 		return err
 	}
-	transport = transportFactory.GetTransport(transport)
-	defer transport.Close()
-	if err := transport.Open(); err != nil {
+	ftransport := transportFactory.GetTransport(transport, 5)
+	defer ftransport.Close()
+	if err := ftransport.Open(); err != nil {
 		return err
 	}
-	return handleClient(event.NewFFooClientFactory(transport, protocolFactory))
+	client, err := event.NewFFooClientFactory(ftransport, protocolFactory)
+	if err != nil {
+		return err
+	}
+	return handleClient(client)
 }
 
 // Sever handler
@@ -137,22 +122,29 @@ func (f *FooHandler) Blah(ctx frugal.Context, num int32, str string, e *event.Ev
 	return 42, nil
 }
 
+func (f *FooHandler) AsyncBlah(ctx frugal.Context, num int32, str string, e *event.Event, send func(int64)) error {
+	for i := int64(0); i < 5; i++ {
+		send(i)
+		time.Sleep(time.Second)
+	}
+	return nil
+}
+
 // Server runner
-func runServer(conn *nats.Conn, transportFactory thrift.TTransportFactory,
+func runServer(conn *nats.Conn, transportFactory frugal.FTransportFactory,
 	protocolFactory frugal.FProtocolFactory) error {
 	handler := &FooHandler{}
 	processor := event.NewFFooProcessor(handler)
-	server := frugal.NewNATSServer(conn, "foo", -1, time.Minute, processor,
+	server := frugal.NewFNatsServer(conn, "foo", -1, time.Minute, processor,
 		transportFactory, protocolFactory)
 	fmt.Println("Starting the simple nats server... on ", "foo")
 	return server.Serve()
 }
 
 // Subscriber runner
-func runSubscriber(conn *nats.Conn, protocolFactory thrift.TProtocolFactory,
-	transportFactory thrift.TTransportFactory) error {
-	factory := frugal.NewFNatsTransportFactory(conn)
-	provider := frugal.NewProvider(factory, transportFactory, protocolFactory)
+func runSubscriber(conn *nats.Conn, protocolFactory frugal.FProtocolFactory) error {
+	factory := frugal.NewFNatsScopeTransportFactory(conn)
+	provider := frugal.NewProvider(factory, protocolFactory)
 	subscriber := event.NewEventsSubscriber(provider)
 	_, err := subscriber.SubscribeEventCreated("barUser", func(e *event.Event) {
 		fmt.Printf("received %+v\n", e)
@@ -167,10 +159,9 @@ func runSubscriber(conn *nats.Conn, protocolFactory thrift.TProtocolFactory,
 }
 
 // Publisher runner
-func runPublisher(conn *nats.Conn, protocolFactory thrift.TProtocolFactory,
-	transportFactory thrift.TTransportFactory) error {
-	factory := frugal.NewFNatsTransportFactory(conn)
-	provider := frugal.NewProvider(factory, transportFactory, protocolFactory)
+func runPublisher(conn *nats.Conn, protocolFactory frugal.FProtocolFactory) error {
+	factory := frugal.NewFNatsScopeTransportFactory(conn)
+	provider := frugal.NewProvider(factory, protocolFactory)
 	publisher := event.NewEventsPublisher(provider)
 	event := &event.Event{Message: "hello, world!"}
 	if err := publisher.PublishEventCreated("barUser", event); err != nil {

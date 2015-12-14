@@ -16,9 +16,8 @@ const delimiter = "."
 // This docstring gets added to the generated code because it has
 // the @ sign.
 type EventsPublisher struct {
-	FTransport frugal.FTransport
+	FTransport frugal.FScopeTransport
 	TProtocol  thrift.TProtocol
-	SeqId     int32
 }
 
 func NewEventsPublisher(provider *frugal.Provider) *EventsPublisher {
@@ -26,7 +25,6 @@ func NewEventsPublisher(provider *frugal.Provider) *EventsPublisher {
 	return &EventsPublisher{
 		FTransport: transport,
 		TProtocol:  protocol,
-		SeqId:     0,
 	}
 }
 
@@ -35,10 +33,9 @@ func (l *EventsPublisher) PublishEventCreated(user string, req *Event) error {
 	op := "EventCreated"
 	prefix := fmt.Sprintf("foo.%s.", user)
 	topic := fmt.Sprintf("%sEvents%s%s", prefix, delimiter, op)
-	l.FTransport.PreparePublish(topic)
+	l.FTransport.SetTopic(topic)
 	oprot := l.TProtocol
-	l.SeqId++
-	if err := oprot.WriteMessageBegin(op, thrift.CALL, l.SeqId); err != nil {
+	if err := oprot.WriteMessageBegin(op, thrift.CALL, 0); err != nil {
 		return err
 	}
 	if err := req.Write(oprot); err != nil {
@@ -61,7 +58,7 @@ func NewEventsSubscriber(provider *frugal.Provider) *EventsSubscriber {
 }
 
 // This is a docstring.
-func (l *EventsSubscriber) SubscribeEventCreated(user string, handler func(*Event)) (*frugal.Subscription, error) {
+func (l *EventsSubscriber) SubscribeEventCreated(user string, handler func(*Event)) (*frugal.ScopeSubscription, error) {
 	op := "EventCreated"
 	prefix := fmt.Sprintf("foo.%s.", user)
 	topic := fmt.Sprintf("%sEvents%s%s", prefix, delimiter, op)
@@ -70,7 +67,7 @@ func (l *EventsSubscriber) SubscribeEventCreated(user string, handler func(*Even
 		return nil, err
 	}
 
-	sub := frugal.NewSubscription(topic, transport)
+	sub := frugal.NewScopeSubscription(topic, transport)
 	go func() {
 		for {
 			received, err := l.recvEventCreated(op, protocol)
