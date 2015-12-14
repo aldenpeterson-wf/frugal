@@ -6,7 +6,6 @@ package event
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"sync"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -23,15 +22,7 @@ type FFoo interface {
 	Ping(frugal.Context) (err error)
 	// Blah the server.
 	Blah(frugal.Context, int32, string, *Event) (r int64, err error)
-	AsyncBlah(frugal.Context, int32, string, *Event, func(int64), func(error)) (*frugal.AsyncSubscription, error)
-}
-
-type FFooServer interface {
-	// Ping the server.
-	Ping(frugal.Context) (err error)
-	// Blah the server.
-	Blah(frugal.Context, int32, string, *Event) (r int64, err error)
-	AsyncBlah(frugal.Context, int32, string, *Event, func(int64)) error
+	//AsyncBlah(frugal.Context, int32, string, *Event, func(frugal.AsyncContext, int64)) (*frugal.AsyncSubscription, error)
 }
 
 type FFooClient struct {
@@ -63,7 +54,7 @@ func (f *FFooClient) Ping(ctx frugal.Context) (err error) {
 	}
 	errorC := make(chan error, 1)
 	resultC := make(chan struct{}, 1)
-	if err = f.FTransport.Register(ctx, f.FProtocolFactory, nil, recvPingHandler(ctx, resultC, errorC)); err != nil {
+	if err = f.FTransport.Register(ctx, f.FProtocolFactory, recvPingHandler(ctx, resultC, errorC)); err != nil {
 		return
 	}
 	if err = f.OutputProtocol.WriteRequestHeader(ctx); err != nil {
@@ -169,7 +160,7 @@ func (f *FFooClient) Blah(ctx frugal.Context, num int32, str string, event *Even
 	}
 	errorC := make(chan error, 1)
 	resultC := make(chan int64, 1)
-	if err = f.FTransport.Register(ctx, f.FProtocolFactory, nil, recvBlahHandler(ctx, resultC, errorC)); err != nil {
+	if err = f.FTransport.Register(ctx, f.FProtocolFactory, recvBlahHandler(ctx, resultC, errorC)); err != nil {
 		return
 	}
 	if err = f.OutputProtocol.WriteRequestHeader(ctx); err != nil {
@@ -276,155 +267,155 @@ func recvBlahHandler(ctx frugal.Context, resultC chan<- int64, errorC chan<- err
 	}
 }
 
-func (f *FFooClient) AsyncBlah(ctx frugal.Context, num int32, str string, event *Event, callback func(int64), onDisconnect func(error)) (sub *frugal.AsyncSubscription, err error) {
-	oprot := f.OutputProtocol
-	if oprot == nil {
-		oprot = f.FProtocolFactory.GetProtocol(f.FTransport)
-		f.OutputProtocol = oprot
-	}
-	errorC := make(chan error, 1)
-	if err = f.FTransport.Register(ctx, f.FProtocolFactory, asyncAckHandler(ctx, errorC), recvAsyncBlahHandler(ctx, oprot, callback, onDisconnect)); err != nil {
-		return
-	}
-	if err = f.OutputProtocol.WriteRequestHeader(ctx); err != nil {
-		f.FTransport.Unregister(ctx)
-		return
-	}
-	f.mu.Lock()
-	if err = oprot.WriteMessageBegin("asyncBlah", thrift.CALL, 0); err != nil {
-		f.mu.Unlock()
-		f.FTransport.Unregister(ctx)
-		return
-	}
-	args := FooBlahArgs{
-		Num:   num,
-		Str:   str,
-		Event: event,
-	}
-	if err = args.Write(oprot); err != nil {
-		f.mu.Unlock()
-		f.FTransport.Unregister(ctx)
-		return
-	}
-	if err = oprot.WriteMessageEnd(); err != nil {
-		f.mu.Unlock()
-		f.FTransport.Unregister(ctx)
-		return
-	}
-	if err = oprot.Flush(); err != nil {
-		f.mu.Unlock()
-		f.FTransport.Unregister(ctx)
-		return
-	}
-	f.mu.Unlock()
-
-	select {
-	case err = <-errorC:
-		if err != nil {
-			f.FTransport.Unregister(ctx)
-			return
-		}
-		// TODO: add timeout
-	}
-
-	sub = frugal.NewAsyncSubscription(ctx, f.FTransport)
-	return
-}
-
-func recvAsyncBlahHandler(ctx frugal.Context, oprot frugal.FProtocol, callback func(int64), onDisconnect func(error)) frugal.AsyncCallback {
-	return func(iprot frugal.FProtocol, err error) error {
-		if err != nil {
-			onDisconnect(err)
-			return err
-		}
-
-		if err := iprot.ReadResponseHeader(ctx); err != nil {
-			fmt.Println("error reading header", err)
-			onDisconnect(err)
-			return err
-		}
-		method, mTypeId, _, err := iprot.ReadMessageBegin()
-		if err != nil {
-			onDisconnect(err)
-			return err
-		}
-		if method != "asyncBlah" {
-			err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "asyncBlah failed: wrong method name")
-			onDisconnect(err)
-			return err
-		}
-		if mTypeId == thrift.EXCEPTION {
-			error0 := thrift.NewTApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
-			var error1 error
-			error1, err = error0.Read(iprot)
-			if err != nil {
-				onDisconnect(err)
-				return err
-			}
-			if err = iprot.ReadMessageEnd(); err != nil {
-				onDisconnect(err)
-				return err
-			}
-			err = error1
-			onDisconnect(err)
-			return err
-		}
-		if mTypeId == frugal.ACK {
-			onDisconnect(nil)
-			return io.EOF
-		}
-		if mTypeId != thrift.REPLY {
-			err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "asyncBlah failed: invalid message type")
-			onDisconnect(err)
-			return err
-		}
-		result := FooBlahResult{}
-		if err = result.Read(iprot); err != nil {
-			onDisconnect(err)
-			return err
-		}
-		if err = iprot.ReadMessageEnd(); err != nil {
-			onDisconnect(err)
-			return err
-		}
-
-		if result.Awe != nil {
-			onDisconnect(result.Awe)
-			return result.Awe
-		}
-		callback(result.GetSuccess())
-		return nil
-	}
-}
-
-func asyncAckHandler(ctx frugal.Context, errorC chan<- error) frugal.AsyncCallback {
-	return func(iprot frugal.FProtocol, err error) error {
-		if err := iprot.ReadResponseHeader(ctx); err != nil {
-			errorC <- err
-			return err
-		}
-		_, mTypeId, _, err := iprot.ReadMessageBegin()
-		if err != nil {
-			errorC <- err
-			return err
-		}
-		if err = iprot.ReadMessageEnd(); err != nil {
-			errorC <- err
-			return err
-		}
-		if mTypeId != frugal.ACK {
-			err := frugal.ErrInvalidAck
-			errorC <- err
-			return err
-		}
-		errorC <- nil
-		return nil
-	}
-}
+//func (f *FFooClient) AsyncBlah(ctx frugal.Context, num int32, str string, event *Event, callback func(int64), onDisconnect func(error)) (sub *frugal.AsyncSubscription, err error) {
+//	oprot := f.OutputProtocol
+//	if oprot == nil {
+//		oprot = f.FProtocolFactory.GetProtocol(f.FTransport)
+//		f.OutputProtocol = oprot
+//	}
+//	errorC := make(chan error, 1)
+//	if err = f.FTransport.Register(ctx, f.FProtocolFactory, asyncAckHandler(ctx, errorC), recvAsyncBlahHandler(ctx, oprot, callback, onDisconnect)); err != nil {
+//		return
+//	}
+//	if err = f.OutputProtocol.WriteRequestHeader(ctx); err != nil {
+//		f.FTransport.Unregister(ctx)
+//		return
+//	}
+//	f.mu.Lock()
+//	if err = oprot.WriteMessageBegin("asyncBlah", thrift.CALL, 0); err != nil {
+//		f.mu.Unlock()
+//		f.FTransport.Unregister(ctx)
+//		return
+//	}
+//	args := FooBlahArgs{
+//		Num:   num,
+//		Str:   str,
+//		Event: event,
+//	}
+//	if err = args.Write(oprot); err != nil {
+//		f.mu.Unlock()
+//		f.FTransport.Unregister(ctx)
+//		return
+//	}
+//	if err = oprot.WriteMessageEnd(); err != nil {
+//		f.mu.Unlock()
+//		f.FTransport.Unregister(ctx)
+//		return
+//	}
+//	if err = oprot.Flush(); err != nil {
+//		f.mu.Unlock()
+//		f.FTransport.Unregister(ctx)
+//		return
+//	}
+//	f.mu.Unlock()
+//
+//	select {
+//	case err = <-errorC:
+//		if err != nil {
+//			f.FTransport.Unregister(ctx)
+//			return
+//		}
+//		// TODO: add timeout
+//	}
+//
+//	sub = frugal.NewAsyncSubscription(ctx, f.FTransport)
+//	return
+//}
+//
+//func recvAsyncBlahHandler(ctx frugal.Context, oprot frugal.FProtocol, callback func(int64), onDisconnect func(error)) frugal.AsyncCallback {
+//	return func(iprot frugal.FProtocol, err error) error {
+//		if err != nil {
+//			onDisconnect(err)
+//			return err
+//		}
+//
+//		if err := iprot.ReadResponseHeader(ctx); err != nil {
+//			fmt.Println("error reading header", err)
+//			onDisconnect(err)
+//			return err
+//		}
+//		method, mTypeId, _, err := iprot.ReadMessageBegin()
+//		if err != nil {
+//			onDisconnect(err)
+//			return err
+//		}
+//		if method != "asyncBlah" {
+//			err = thrift.NewTApplicationException(thrift.WRONG_METHOD_NAME, "asyncBlah failed: wrong method name")
+//			onDisconnect(err)
+//			return err
+//		}
+//		if mTypeId == thrift.EXCEPTION {
+//			error0 := thrift.NewTApplicationException(thrift.UNKNOWN_APPLICATION_EXCEPTION, "Unknown Exception")
+//			var error1 error
+//			error1, err = error0.Read(iprot)
+//			if err != nil {
+//				onDisconnect(err)
+//				return err
+//			}
+//			if err = iprot.ReadMessageEnd(); err != nil {
+//				onDisconnect(err)
+//				return err
+//			}
+//			err = error1
+//			onDisconnect(err)
+//			return err
+//		}
+//		if mTypeId == frugal.ACK {
+//			onDisconnect(nil)
+//			return io.EOF
+//		}
+//		if mTypeId != thrift.REPLY {
+//			err = thrift.NewTApplicationException(thrift.INVALID_MESSAGE_TYPE_EXCEPTION, "asyncBlah failed: invalid message type")
+//			onDisconnect(err)
+//			return err
+//		}
+//		result := FooBlahResult{}
+//		if err = result.Read(iprot); err != nil {
+//			onDisconnect(err)
+//			return err
+//		}
+//		if err = iprot.ReadMessageEnd(); err != nil {
+//			onDisconnect(err)
+//			return err
+//		}
+//
+//		if result.Awe != nil {
+//			onDisconnect(result.Awe)
+//			return result.Awe
+//		}
+//		callback(result.GetSuccess())
+//		return nil
+//	}
+//}
+//
+//func asyncAckHandler(ctx frugal.Context, errorC chan<- error) frugal.AsyncCallback {
+//	return func(iprot frugal.FProtocol, err error) error {
+//		if err := iprot.ReadResponseHeader(ctx); err != nil {
+//			errorC <- err
+//			return err
+//		}
+//		_, mTypeId, _, err := iprot.ReadMessageBegin()
+//		if err != nil {
+//			errorC <- err
+//			return err
+//		}
+//		if err = iprot.ReadMessageEnd(); err != nil {
+//			errorC <- err
+//			return err
+//		}
+//		if mTypeId != frugal.ACK {
+//			err := frugal.ErrInvalidAck
+//			errorC <- err
+//			return err
+//		}
+//		errorC <- nil
+//		return nil
+//	}
+//}
 
 type FFooProcessor struct {
 	processorMap map[string]frugal.FProcessorFunction
-	handler      FFooServer
+	handler      FFoo
 	readMu       *sync.Mutex
 	writeMu      *sync.Mutex
 	errors       chan error
@@ -435,7 +426,7 @@ func (p *FFooProcessor) GetProcessorFunction(key string) (processor frugal.FProc
 	return
 }
 
-func NewFFooProcessor(handler FFooServer) *FFooProcessor {
+func NewFFooProcessor(handler FFoo) *FFooProcessor {
 	readMu := &sync.Mutex{}
 	writeMu := &sync.Mutex{}
 	errors := make(chan error, 1)
@@ -448,7 +439,7 @@ func NewFFooProcessor(handler FFooServer) *FFooProcessor {
 	}
 	p.processorMap["ping"] = &fooFPing{handler: handler, readMu: readMu, writeMu: writeMu, errors: errors}
 	p.processorMap["blah"] = &fooFBlah{handler: handler, readMu: readMu, writeMu: writeMu, errors: errors}
-	p.processorMap["asyncBlah"] = &fooFAsyncBlah{handler: handler, readMu: readMu, writeMu: writeMu, errors: errors}
+	//p.processorMap["asyncBlah"] = &fooFAsyncBlah{handler: handler, readMu: readMu, writeMu: writeMu, errors: errors}
 	return p
 }
 
@@ -464,14 +455,14 @@ func (p *FFooProcessor) Process(iprot, oprot frugal.FProtocol) {
 		p.errors <- err
 		return
 	}
-	name, _, seqId, err := iprot.ReadMessageBegin()
+	name, _, _, err := iprot.ReadMessageBegin()
 	if err != nil {
 		p.readMu.Unlock()
 		p.errors <- err
 		return
 	}
 	if processor, ok := p.GetProcessorFunction(name); ok {
-		processor.Process(ctx, seqId, iprot, oprot)
+		processor.Process(ctx, iprot, oprot)
 		return
 	}
 	iprot.Skip(thrift.STRUCT)
@@ -479,7 +470,7 @@ func (p *FFooProcessor) Process(iprot, oprot frugal.FProtocol) {
 	p.readMu.Unlock()
 	x3 := thrift.NewTApplicationException(thrift.UNKNOWN_METHOD, "Unknown function "+name)
 	p.writeMu.Lock()
-	oprot.WriteMessageBegin(name, thrift.EXCEPTION, seqId)
+	oprot.WriteMessageBegin(name, thrift.EXCEPTION, 0)
 	x3.Write(oprot)
 	oprot.WriteMessageEnd()
 	oprot.Flush()
@@ -489,13 +480,13 @@ func (p *FFooProcessor) Process(iprot, oprot frugal.FProtocol) {
 }
 
 type fooFPing struct {
-	handler FFooServer
+	handler FFoo
 	readMu  *sync.Mutex
 	writeMu *sync.Mutex
 	errors  chan<- error
 }
 
-func (p *fooFPing) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.FProtocol) {
+func (p *fooFPing) Process(ctx frugal.Context, iprot, oprot frugal.FProtocol) {
 	args := FooPingArgs{}
 	var err error
 	if err = args.Read(iprot); err != nil {
@@ -503,7 +494,7 @@ func (p *fooFPing) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 		p.readMu.Unlock()
 		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
 		p.writeMu.Lock()
-		oprot.WriteMessageBegin("ping", thrift.EXCEPTION, seqId)
+		oprot.WriteMessageBegin("ping", thrift.EXCEPTION, 0)
 		x.Write(oprot)
 		oprot.WriteMessageEnd()
 		oprot.Flush()
@@ -519,7 +510,7 @@ func (p *fooFPing) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 	if err2 = p.handler.Ping(ctx); err2 != nil {
 		x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing ping: "+err2.Error())
 		p.writeMu.Lock()
-		oprot.WriteMessageBegin("ping", thrift.EXCEPTION, seqId)
+		oprot.WriteMessageBegin("ping", thrift.EXCEPTION, 0)
 		x.Write(oprot)
 		oprot.WriteMessageEnd()
 		oprot.Flush()
@@ -531,7 +522,7 @@ func (p *fooFPing) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 	if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
 		err = err2
 	}
-	if err2 = oprot.WriteMessageBegin("ping", thrift.REPLY, seqId); err2 != nil {
+	if err2 = oprot.WriteMessageBegin("ping", thrift.REPLY, 0); err2 != nil {
 		err = err2
 	}
 	if err2 = result.Write(oprot); err == nil && err2 != nil {
@@ -550,13 +541,13 @@ func (p *fooFPing) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 }
 
 type fooFBlah struct {
-	handler FFooServer
+	handler FFoo
 	readMu  *sync.Mutex
 	writeMu *sync.Mutex
 	errors  chan<- error
 }
 
-func (p *fooFBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.FProtocol) {
+func (p *fooFBlah) Process(ctx frugal.Context, iprot, oprot frugal.FProtocol) {
 	args := FooBlahArgs{}
 	var err error
 	if err = args.Read(iprot); err != nil {
@@ -564,7 +555,7 @@ func (p *fooFBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 		p.readMu.Unlock()
 		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
 		p.writeMu.Lock()
-		oprot.WriteMessageBegin("blah", thrift.EXCEPTION, seqId)
+		oprot.WriteMessageBegin("blah", thrift.EXCEPTION, 0)
 		x.Write(oprot)
 		oprot.WriteMessageEnd()
 		oprot.Flush()
@@ -585,7 +576,7 @@ func (p *fooFBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 		default:
 			x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing blah: "+err2.Error())
 			p.writeMu.Lock()
-			oprot.WriteMessageBegin("blah", thrift.EXCEPTION, seqId)
+			oprot.WriteMessageBegin("blah", thrift.EXCEPTION, 0)
 			x.Write(oprot)
 			oprot.WriteMessageEnd()
 			oprot.Flush()
@@ -600,7 +591,7 @@ func (p *fooFBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 	if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
 		err = err2
 	}
-	if err2 = oprot.WriteMessageBegin("blah", thrift.REPLY, seqId); err2 != nil {
+	if err2 = oprot.WriteMessageBegin("blah", thrift.REPLY, 0); err2 != nil {
 		err = err2
 	}
 	if err2 = result.Write(oprot); err == nil && err2 != nil {
@@ -618,129 +609,129 @@ func (p *fooFBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.
 	}
 }
 
-type fooFAsyncBlah struct {
-	handler FFooServer
-	readMu  *sync.Mutex
-	writeMu *sync.Mutex
-	errors  chan<- error
-}
-
-func (p *fooFAsyncBlah) Process(ctx frugal.Context, seqId int32, iprot, oprot frugal.FProtocol) {
-	args := FooBlahArgs{}
-	var err error
-	if err = args.Read(iprot); err != nil {
-		iprot.ReadMessageEnd()
-		p.readMu.Unlock()
-		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
-		p.writeMu.Lock()
-		oprot.WriteMessageBegin("asyncBlah", thrift.EXCEPTION, seqId)
-		x.Write(oprot)
-		oprot.WriteMessageEnd()
-		oprot.Flush()
-		p.writeMu.Unlock()
-		p.errors <- err
-		return
-	}
-	iprot.ReadMessageEnd()
-	p.readMu.Unlock()
-
-	// Ack
-	var err2 error
-	p.writeMu.Lock()
-	if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
-		err = err2
-	}
-	if err2 = oprot.WriteMessageBegin("asyncBlah", frugal.ACK, seqId); err2 != nil {
-		err = err2
-	}
-	if err2 = oprot.WriteMessageEnd(); err2 != nil {
-		err = err2
-	}
-	if err2 = oprot.Flush(); err2 != nil {
-		err = err2
-	}
-	p.writeMu.Unlock()
-	if err != nil {
-		p.errors <- err
-		return
-	}
-
-	callback := p.resultCallback(oprot, ctx)
-	go func() {
-		err := p.handler.AsyncBlah(ctx, args.Num, args.Str, args.Event, p.wrap(callback))
-		if err != nil {
-			// TODO: Send error
-		} else {
-			var err2 error
-			p.writeMu.Lock()
-			if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
-				err = err2
-			}
-			if err2 = oprot.WriteMessageBegin("asyncBlah", frugal.ACK, seqId); err2 != nil {
-				err = err2
-			}
-			if err2 = oprot.WriteMessageEnd(); err2 != nil {
-				err = err2
-			}
-			if err2 = oprot.Flush(); err2 != nil {
-				err = err2
-			}
-			p.writeMu.Unlock()
-			if err != nil {
-				p.errors <- err
-			}
-			return
-		}
-	}()
-}
-
-func (p *fooFAsyncBlah) wrap(f func(result int64, err error)) func(int64) {
-	return func(r int64) {
-		f(r, nil)
-	}
-}
-
-func (p *fooFAsyncBlah) resultCallback(oprot frugal.FProtocol, ctx frugal.Context) func(int64, error) {
-	return func(r int64, err error) {
-		result := FooBlahResult{}
-		if err != nil {
-			switch v := err.(type) {
-			case *AwesomeException:
-				result.Awe = v
-			default:
-				x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing asyncBlah: "+err.Error())
-				p.writeMu.Lock()
-				oprot.WriteMessageBegin("asyncBlah", thrift.EXCEPTION, 0)
-				x.Write(oprot)
-				oprot.WriteMessageEnd()
-				oprot.Flush()
-				p.writeMu.Unlock()
-				p.errors <- x
-				return
-			}
-		} else {
-			result.Success = &r
-		}
-		var err2 error
-		p.writeMu.Lock()
-		if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
-			err = err2
-		}
-		if err2 = oprot.WriteMessageBegin("asyncBlah", thrift.REPLY, 0); err2 != nil {
-			err = err2
-		}
-		if err2 = result.Write(oprot); err == nil && err2 != nil {
-			err = err2
-		}
-		if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
-			err = err2
-		}
-		if err2 = oprot.Flush(); err == nil && err2 != nil {
-			err = err2
-		}
-		p.writeMu.Unlock()
-		if err != nil {
-			p.errors <- err
-		}
-	}
-}
+//type fooFAsyncBlah struct {
+//	handler FFoo
+//	readMu  *sync.Mutex
+//	writeMu *sync.Mutex
+//	errors  chan<- error
+//}
+//
+//func (p *fooFAsyncBlah) Process(ctx frugal.Context, iprot, oprot frugal.FProtocol) {
+//	args := FooBlahArgs{}
+//	var err error
+//	if err = args.Read(iprot); err != nil {
+//		iprot.ReadMessageEnd()
+//		p.readMu.Unlock()
+//		x := thrift.NewTApplicationException(thrift.PROTOCOL_ERROR, err.Error())
+//		p.writeMu.Lock()
+//		oprot.WriteMessageBegin("asyncBlah", thrift.EXCEPTION, 0)
+//		x.Write(oprot)
+//		oprot.WriteMessageEnd()
+//		oprot.Flush()
+//		p.writeMu.Unlock()
+//		p.errors <- err
+//		return
+//	}
+//	iprot.ReadMessageEnd()
+//	p.readMu.Unlock()
+//
+//	// Ack
+//	var err2 error
+//	p.writeMu.Lock()
+//	if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
+//		err = err2
+//	}
+//	if err2 = oprot.WriteMessageBegin("asyncBlah", frugal.ACK, 0); err2 != nil {
+//		err = err2
+//	}
+//	if err2 = oprot.WriteMessageEnd(); err2 != nil {
+//		err = err2
+//	}
+//	if err2 = oprot.Flush(); err2 != nil {
+//		err = err2
+//	}
+//	p.writeMu.Unlock()
+//	if err != nil {
+//		p.errors <- err
+//		return
+//	}
+//
+//	callback := p.resultCallback(oprot, ctx)
+//	go func() {
+//		if err := p.handler.AsyncBlah(ctx, args.Num, args.Str, args.Event, p.wrap(callback)); err != nil {
+//			var r int64
+//			callback(r, err)
+//			return
+//		}
+//
+//		var err2 error
+//		p.writeMu.Lock()
+//		if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
+//			err = err2
+//		}
+//		if err2 = oprot.WriteMessageBegin("asyncBlah", frugal.ACK, 0); err2 != nil {
+//			err = err2
+//		}
+//		if err2 = oprot.WriteMessageEnd(); err2 != nil {
+//			err = err2
+//		}
+//		if err2 = oprot.Flush(); err2 != nil {
+//			err = err2
+//		}
+//		p.writeMu.Unlock()
+//		if err != nil {
+//			p.errors <- err
+//		}
+//	}()
+//}
+//
+//func (p *fooFAsyncBlah) wrap(f func(result int64, err error)) func(int64) {
+//	return func(r int64) {
+//		f(r, nil)
+//	}
+//}
+//
+//func (p *fooFAsyncBlah) resultCallback(oprot frugal.FProtocol, ctx frugal.Context) func(int64, error) {
+//	return func(r int64, err error) {
+//		result := FooBlahResult{}
+//		if err != nil {
+//			switch v := err.(type) {
+//			case *AwesomeException:
+//				result.Awe = v
+//			default:
+//				x := thrift.NewTApplicationException(thrift.INTERNAL_ERROR, "Internal error processing asyncBlah: "+err.Error())
+//				p.writeMu.Lock()
+//				oprot.WriteMessageBegin("asyncBlah", thrift.EXCEPTION, 0)
+//				x.Write(oprot)
+//				oprot.WriteMessageEnd()
+//				oprot.Flush()
+//				p.writeMu.Unlock()
+//				p.errors <- x
+//				return
+//			}
+//		} else {
+//			result.Success = &r
+//		}
+//		var err2 error
+//		p.writeMu.Lock()
+//		if err2 = oprot.WriteResponseHeader(ctx); err2 != nil {
+//			err = err2
+//		}
+//		if err2 = oprot.WriteMessageBegin("asyncBlah", thrift.REPLY, 0); err2 != nil {
+//			err = err2
+//		}
+//		if err2 = result.Write(oprot); err == nil && err2 != nil {
+//			err = err2
+//		}
+//		if err2 = oprot.WriteMessageEnd(); err == nil && err2 != nil {
+//			err = err2
+//		}
+//		if err2 = oprot.Flush(); err == nil && err2 != nil {
+//			err = err2
+//		}
+//		p.writeMu.Unlock()
+//		if err != nil {
+//			p.errors <- err
+//		}
+//	}
+//}

@@ -33,7 +33,10 @@ func (l *EventsPublisher) PublishEventCreated(user string, req *Event) error {
 	op := "EventCreated"
 	prefix := fmt.Sprintf("foo.%s.", user)
 	topic := fmt.Sprintf("%sEvents%s%s", prefix, delimiter, op)
-	l.FTransport.SetTopic(topic)
+	if err := l.FTransport.LockTopic(topic); err != nil {
+		return err
+	}
+	defer l.FTransport.UnlockTopic()
 	oprot := l.TProtocol
 	if err := oprot.WriteMessageBegin(op, thrift.CALL, 0); err != nil {
 		return err

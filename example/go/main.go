@@ -78,12 +78,12 @@ func handleClient(client *event.FFooClient) (err error) {
 	fmt.Printf("Blah = %d\n", result)
 	fmt.Println(ctx.ResponseHeader("foo"))
 	fmt.Printf("%+v\n", ctx)
-	ctx = frugal.NewContext("")
-	client.AsyncBlah(ctx, 100, "awesomesauce", event, func(result int64) {
-		fmt.Println("async result", result)
-	}, func(err error) {
-		fmt.Println("async error", err)
-	})
+	//ctx = frugal.NewContext("")
+	//client.AsyncBlah(ctx, 100, "awesomesauce", event, func(result int64) {
+	//	fmt.Println("async result", result)
+	//}, func(err error) {
+	//	fmt.Println("async error", err)
+	//})
 
 	time.Sleep(5 * time.Second)
 	return err
