@@ -27,13 +27,13 @@ type FFoo interface {
 
 type FFooClient struct {
 	FTransport       frugal.FTransport
-	FProtocolFactory frugal.FProtocolFactory
-	InputProtocol    frugal.FProtocol
-	OutputProtocol   frugal.FProtocol
+	FProtocolFactory *frugal.FProtocolFactory
+	InputProtocol    *frugal.FProtocol
+	OutputProtocol   *frugal.FProtocol
 	mu               sync.Mutex
 }
 
-func NewFFooClientFactory(t frugal.FTransport, f frugal.FProtocolFactory) (*FFooClient, error) {
+func NewFFooClientFactory(t frugal.FTransport, f *frugal.FProtocolFactory) (*FFooClient, error) {
 	if err := t.StartDispatchers(frugal.NewClientRegistry()); err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (f *FFooClient) Ping(ctx frugal.Context) (err error) {
 }
 
 func recvPingHandler(ctx frugal.Context, resultC chan<- struct{}, errorC chan<- error) frugal.AsyncCallback {
-	return func(iprot frugal.FProtocol, err error) error {
+	return func(iprot *frugal.FProtocol, err error) error {
 		if err != nil {
 			errorC <- err
 			return nil
@@ -206,7 +206,7 @@ func (f *FFooClient) Blah(ctx frugal.Context, num int32, str string, event *Even
 }
 
 func recvBlahHandler(ctx frugal.Context, resultC chan<- int64, errorC chan<- error) frugal.AsyncCallback {
-	return func(iprot frugal.FProtocol, err error) error {
+	return func(iprot *frugal.FProtocol, err error) error {
 		if err != nil {
 			errorC <- err
 			return err
@@ -447,7 +447,7 @@ func (p *FFooProcessor) Errors() <-chan error {
 	return p.errors
 }
 
-func (p *FFooProcessor) Process(iprot, oprot frugal.FProtocol) {
+func (p *FFooProcessor) Process(iprot, oprot *frugal.FProtocol) {
 	p.readMu.Lock()
 	ctx, err := iprot.ReadRequestHeader()
 	if err != nil {
@@ -486,7 +486,7 @@ type fooFPing struct {
 	errors  chan<- error
 }
 
-func (p *fooFPing) Process(ctx frugal.Context, iprot, oprot frugal.FProtocol) {
+func (p *fooFPing) Process(ctx frugal.Context, iprot, oprot *frugal.FProtocol) {
 	args := FooPingArgs{}
 	var err error
 	if err = args.Read(iprot); err != nil {
@@ -547,7 +547,7 @@ type fooFBlah struct {
 	errors  chan<- error
 }
 
-func (p *fooFBlah) Process(ctx frugal.Context, iprot, oprot frugal.FProtocol) {
+func (p *fooFBlah) Process(ctx frugal.Context, iprot, oprot *frugal.FProtocol) {
 	args := FooBlahArgs{}
 	var err error
 	if err = args.Read(iprot); err != nil {
