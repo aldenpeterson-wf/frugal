@@ -1,4 +1,4 @@
-
+import uuid
 
 class TimeoutError(Exception):
     """Indicats the Request has timed out"""
@@ -23,5 +23,5 @@ class Context:
         # request_headers[OP_ID] = "12345"
 
     def generate_cid(self):
-        return "12345"
+        return str(uuid.uuid4()).replace('-', '')
 
