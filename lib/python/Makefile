@@ -36,6 +36,3 @@ xunit:
 
 test_local:
 	./run_tests_local.sh
-
-remove_server:
-	rm -rf go

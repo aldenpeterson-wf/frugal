@@ -12,7 +12,3 @@ class FScopeTransport(TBaseTransport):
     def subscribe(topic):
         pass
 
-    def set_monitor(monitor):
-        pass
-
-
