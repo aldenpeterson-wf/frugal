@@ -27,8 +27,14 @@ class FContext(object):
     def _generate_cid(self):
         return str(uuid.uuid4()).replace('-', '')
 
-    def get_request_headers(self):
-        return self._request_headers
+    def get_request_header(self, key):
+        return self._request_headers[key]
 
-    def get_response_headers(self):
-        return self._response_headers
+    def put_request_header(self, key, value):
+        self._request_headers[key] = value
+
+    def get_response_header(self, key):
+        return self._response_headers[key]
+
+    def put_response_header(self, key, value):
+        self._response_headers[key] = value

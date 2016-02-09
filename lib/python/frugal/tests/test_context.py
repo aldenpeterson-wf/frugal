@@ -21,21 +21,21 @@ class TestContext(unittest.TestCase):
 
     def test_op_id(self):
         context = FContext(self.correlation_id)
-        context.get_request_headers()['_opid'] = "12345"
+        context.put_request_header("_opid", "12345")
         self.assertEqual(self.correlation_id, context.get_correlation_id())
-        self.assertEqual("12345", context.get_request_headers()['_opid'])
+        self.assertEqual("12345", context.get_request_header("_opid"))
 
     def test_request_header(self):
         context = FContext(self.correlation_id)
-        context.get_request_headers()['foo'] = "bar"
-        self.assertEqual("bar", context.get_request_headers()['foo'])
+        context.put_request_header("foo", "bar")
+        self.assertEqual("bar", context.get_request_header("foo"))
         self.assertEqual(self.correlation_id,
-                         context.get_request_headers()['_cid'])
+                         context.get_request_header("_cid"))
 
     def test_response_header(self):
         context = FContext(self.correlation_id)
-        context.get_response_headers()['foo'] = "bar"
-        self.assertEqual("bar", context.get_response_headers()['foo'])
+        context.put_response_header("foo", "bar")
+        self.assertEqual("bar", context.get_response_header("foo"))
         self.assertEqual(self.correlation_id,
-                         context.get_request_headers()['_cid'])
+                         context.get_request_header("_cid"))
 
