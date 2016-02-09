@@ -1,7 +1,10 @@
+from frugal.exceptions import FException
 
-class Registry(object):
+
+class FRegistry(object):
     """
-    Registry provides a
+    Registry is responsible for multiplexing received
+    messages to the appropriate callback.
     """
     def register(context):
         pass
@@ -9,30 +12,28 @@ class Registry(object):
     def unregister(context):
         pass
 
-    def execute():
+    def execute(frame):
         pass
 
     def close():
         pass
 
 
-class FServerRegistry(Registry):
+class FClientRegistry(FRegistry):
 
-    def __init__(self, processor, inputProtocolFactory, outputProtocol):
-        self.processor = processor
-        self.inputProtocolFactory = inputProtocolFactory
-        self.outputProtocol = outputProtocol
+    def __init__(self):
+        self._handlers = {}
 
-    def register(self, context):
-        pass
+    def register(self, context, callback):
+        op_id = context.get_op_id()
 
-    def unregister(self, context):
-        pass
+        if (op_id in self._handlers):
+            raise FException("context already registered")
 
-    def execute(self, frame):
-        self.processor.process(
-            self.inputProtocolFactory.getProtocol(TMemoryInputTransport(frame)),
-            self.outputProtocol)
+        self._handlers[op_id] = callback
 
-    def close():
+
+class FAsyncCallback(object):
+
+    def on_message(transport):
         pass

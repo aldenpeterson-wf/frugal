@@ -1,13 +1,15 @@
 import uuid
-
+from atomic import AtomicLong
 
 _C_ID = "_cid"
 _OP_ID = "_opid"
-_DEFAULT_TIMEOUT = ""
+_DEFAULT_TIMEOUT = 60 * 1000
 
 
 class FContext(object):
     """FContext is the message context for a frugal message."""
+
+    _NEXT_OP_ID = AtomicLong(0)
 
     def __init__(self, correlation_id=""):
         if (correlation_id == ""):
@@ -19,10 +21,14 @@ class FContext(object):
         self._response_headers = {}
 
         self._request_headers[_C_ID] = correlation_id
-        # request_headers[OP_ID] = "12345"
+        self._NEXT_OP_ID += 1
+        self._request_headers[_OP_ID] = str(self._NEXT_OP_ID.value)
 
     def get_correlation_id(self):
         return self._correlation_id
+
+    def get_op_id(self):
+        return self._request_headers[_OP_ID]
 
     def _generate_cid(self):
         return str(uuid.uuid4()).replace('-', '')
