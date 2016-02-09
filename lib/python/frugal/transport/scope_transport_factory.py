@@ -1,4 +1,4 @@
-from . import FTransportFactory
+from .transport_factory import FTransportFactory
 
 
 class FScopeTransportFactory(FTransportFactory):

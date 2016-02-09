@@ -1,5 +1,5 @@
-from thrift import TProtocolFactory
-from . import FProtocol
+from thrift.protocol.TProtocol import TProtocolFactory
+from .protocol import FProtocol
 
 
 class FProtocolFactory(TProtocolFactory):

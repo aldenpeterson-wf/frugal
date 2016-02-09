@@ -13,15 +13,20 @@ class FServer(object):
     """
     def __init__(self, *args):
         if (len(args) == 2):
-            self.__initArgs__(args[0], args[1],
+            self.__initArgs__(args[0],
+                              args[1],
                               TTransport.TTransportFactoryBase(),
                               TTransport.TTransportFactoryBase(),
                               TBinaryProtocol.TBinaryProtocolFactory(),
                               TBinaryProtocol.TBinaryProtocolFactory())
         elif (len(args) == 4):
-            self.__initArgs__(args[0], args[1], args[2], args[2], args[3], args[3])
+            self.__initArgs__(args[0], args[1],
+                              args[2], args[2],
+                              args[3], args[3])
         elif (len(args) == 6):
-            self.__initArgs__(args[0], args[1], args[2], args[3], args[4], args[5])
+            self.__initArgs__(args[0], args[1],
+                              args[2], args[3],
+                              args[4], args[5])
 
     def __initArgs__(self, processor, serverTransport,
                      inputTransportFactory, outputTransportFactory,
@@ -34,4 +39,7 @@ class FServer(object):
         self.outputProtocolFactory = outputProtocolFactory
 
     def serve(self):
+        pass
+
+    def stop(self):
         pass

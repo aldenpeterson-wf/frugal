@@ -32,6 +32,9 @@ class FClientRegistry(FRegistry):
 
         self._handlers[op_id] = callback
 
+    def unregister(self, context):
+        self._handlers.pop(context.get_op_id(), None)
+
 
 class FAsyncCallback(object):
 

@@ -1,7 +1,10 @@
-from thrift.Thrift import TTransportBase
+from thrift.transport.TTransport import TTransportBase
 
 
-class Transport(TTransportBase):
+class FTransport(TTransportBase):
+
+    def __init__(self, registry=None):
+        self._registry = registry
 
     def set_registry(registry):
         pass

@@ -21,3 +21,13 @@ class TestClientRegistry(unittest.TestCase):
         registry.register(context, callback)
         self.assertRaises(FException,
                           registry.register, context, callback)
+
+    def test_unregister(self):
+        registry = FClientRegistry()
+        context = FContext("fooid")
+        callback = FAsyncCallback()
+        registry.register(context, callback)
+        self.assertEqual(1, len(registry._handlers))
+        registry.unregister(context)
+        self.assertEqual(0, len(registry._handlers))
+

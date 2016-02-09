@@ -7,10 +7,13 @@ class FProcessor(object):
 
 class FBaseProcessor(FProcessor):
 
-    def __init__(self, processor_function__map):
+    def __init__(self, processor_function_map):
         self.processor_function_map = processor_function_map
 
-    def process(in_protocol, out_protocol):
-        context = in_protocol.read_request_header()
-        message = in_protocol.read_message_begin()
-
+    def process(self, iprot, oprot):
+        context = iprot.read_request_header()
+        message = iprot.read_message_begin()
+        processor = self.processor_function_map[message.name]
+        if (processor is not None):
+            processor.process(context, iprot, oprot)
+            return

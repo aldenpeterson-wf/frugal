@@ -1,5 +1,9 @@
 
 class FScopeProvider(object):
+    """
+    FScopeProviders produce FScopeTransports and FProtocols for use
+    with Frugal Publishers and Subscribers.
+    """
 
     def __init__(self, transport_factory, protocol_factory):
         self._transport_factory = transport_factory
