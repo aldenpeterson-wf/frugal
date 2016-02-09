@@ -1,7 +1,7 @@
 import unittest
 from mock import patch
 
-from frugal.context import Context
+from frugal.context import FContext
 
 
 class TestContext(unittest.TestCase):
@@ -9,31 +9,33 @@ class TestContext(unittest.TestCase):
     correlation_id = "fooid"
 
     def test_correlation_id(self):
-        context = Context(self.correlation_id)
-        self.assertEqual(self.correlation_id, context.correlation_id)
+        context = FContext("fooid")
+        self.assertEqual("fooid", context.get_correlation_id())
 
     @patch('uuid.uuid4')
     def test_empty_correlation_id(self, mock_uuid):
         mock_uuid.return_value = "12345"
 
-        context = Context()
-        self.assertEqual("12345", context.correlation_id)
+        context = FContext()
+        self.assertEqual("12345", context.get_correlation_id())
 
     def test_op_id(self):
-        context = Context(self.correlation_id)
-        context.request_headers['_opid'] = "12345"
-        self.assertEqual(self.correlation_id, context.correlation_id)
-        self.assertEqual("12345", context.request_headers['_opid'])
+        context = FContext(self.correlation_id)
+        context.get_request_headers()['_opid'] = "12345"
+        self.assertEqual(self.correlation_id, context.get_correlation_id())
+        self.assertEqual("12345", context.get_request_headers()['_opid'])
 
     def test_request_header(self):
-        context = Context(self.correlation_id)
-        context.request_headers['foo'] = "bar"
-        self.assertEqual("bar", context.request_headers['foo'])
-        self.assertEqual(self.correlation_id, context.request_headers['_cid'])
+        context = FContext(self.correlation_id)
+        context.get_request_headers()['foo'] = "bar"
+        self.assertEqual("bar", context.get_request_headers()['foo'])
+        self.assertEqual(self.correlation_id,
+                         context.get_request_headers()['_cid'])
 
     def test_response_header(self):
-        context = Context(self.correlation_id)
-        context.response_headers['foo'] = "bar"
-        self.assertEqual("bar", context.response_headers['foo'])
-        self.assertEqual(self.correlation_id, context.request_headers['_cid'])
+        context = FContext(self.correlation_id)
+        context.get_response_headers()['foo'] = "bar"
+        self.assertEqual("bar", context.get_response_headers()['foo'])
+        self.assertEqual(self.correlation_id,
+                         context.get_request_headers()['_cid'])
 
