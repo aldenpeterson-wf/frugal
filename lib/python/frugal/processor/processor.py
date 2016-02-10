@@ -1,5 +1,9 @@
 
 class FProcessor(object):
+    """
+    FProcessor is a generic object which operates upon an
+    input stream and writes to some output stream.
+    """
 
     def process(self, iprot, oprot):
         pass

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 from frugal import VERSION
 
 setup(
-    name='w-frugal-python',
+    name='frugal',
     version=VERSION,
     description='Frugal Python Library',
     maintainer='Charlie Strawn',
