@@ -11,21 +11,19 @@ class FContext(object):
 
     _NEXT_OP_ID = AtomicLong(0)
 
-    def __init__(self, correlation_id=""):
-        if (correlation_id == ""):
-            self._correlation_id = self._generate_cid()
-        else:
-            self._correlation_id = correlation_id
-
+    def __init__(self, correlation_id=None):
         self._request_headers = {}
         self._response_headers = {}
+
+        if not correlation_id:
+            correlation_id = self._generate_cid()
 
         self._request_headers[_C_ID] = correlation_id
         self._NEXT_OP_ID += 1
         self._request_headers[_OP_ID] = str(self._NEXT_OP_ID.value)
 
     def get_correlation_id(self):
-        return self._correlation_id
+        return self._request_headers[_C_ID]
 
     def get_op_id(self):
         return self._request_headers[_OP_ID]
