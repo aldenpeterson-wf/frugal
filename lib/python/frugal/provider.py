@@ -1,4 +1,5 @@
 
+
 class FScopeProvider(object):
     """
     FScopeProviders produce FScopeTransports and FProtocols for use

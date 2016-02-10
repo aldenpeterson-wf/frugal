@@ -1,7 +1,7 @@
 
 class FProcessor(object):
 
-    def process(in_protocol, out_protocol):
+    def process(self, iprot, oprot):
         pass
 
 
