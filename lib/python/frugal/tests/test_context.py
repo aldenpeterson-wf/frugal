@@ -39,3 +39,24 @@ class TestContext(unittest.TestCase):
         self.assertEqual(self.correlation_id,
                          context.get_request_header("_cid"))
 
+    def test_request_headers(self):
+        context = FContext(self.correlation_id)
+        context.put_request_header("foo", "bar")
+        headers = context.get_request_headers()
+        self.assertEqual("bar", headers['foo'])
+
+    def test_response_headers(self):
+        context = FContext(self.correlation_id)
+        context.put_response_header("foo", "bar")
+        headers = context.get_response_headers()
+        self.assertEqual("bar", headers['foo'])
+
+    def test_request_header_put_only_allows_string(self):
+        context = FContext(self.correlation_id)
+        self.assertRaises(TypeError, context.put_request_header, 1, "foo")
+        self.assertRaises(TypeError, context.put_request_header, "foo", 3)
+
+    def test_response_header_put_only_allows_string(self):
+        context = FContext(self.correlation_id)
+        self.assertRaises(TypeError, context.put_response_header, 1, "foo")
+        self.assertRaises(TypeError, context.put_response_header, "foo", 3)

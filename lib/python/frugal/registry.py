@@ -59,7 +59,7 @@ class FClientRegistry(FRegistry):
     def register(self, context, callback):
         op_id = context.get_op_id()
 
-        if (op_id in self._handlers):
+        if op_id in self._handlers:
             raise FException("context already registered")
 
         self._handlers[op_id] = callback

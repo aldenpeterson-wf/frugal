@@ -1,5 +1,6 @@
 import uuid
 from atomic import AtomicLong
+from copy import copy
 
 _C_ID = "_cid"
 _OP_ID = "_opid"
@@ -31,14 +32,30 @@ class FContext(object):
     def _generate_cid(self):
         return str(uuid.uuid4()).replace('-', '')
 
+    def get_request_headers(self):
+        return copy(self._request_headers)
+
     def get_request_header(self, key):
         return self._request_headers[key]
 
     def put_request_header(self, key, value):
+        self._check_string(key)
+        self._check_string(value)
+
         self._request_headers[key] = value
+
+    def get_response_headers(self):
+        return copy(self._response_headers)
 
     def get_response_header(self, key):
         return self._response_headers[key]
 
     def put_response_header(self, key, value):
+        self._check_string(key)
+        self._check_string(value)
+
         self._response_headers[key] = value
+
+    def _check_string(self, string):
+        if not isinstance(string, str):
+            raise TypeError("Value should be a string.")
