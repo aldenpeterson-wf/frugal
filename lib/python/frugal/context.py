@@ -29,6 +29,9 @@ class FContext(object):
     def get_op_id(self):
         return self._request_headers[_OP_ID]
 
+    def set_response_headers_op_id(self, op_id):
+        self._response_headers[_OP_ID] = op_id
+
     def _generate_cid(self):
         return str(uuid.uuid4()).replace('-', '')
 

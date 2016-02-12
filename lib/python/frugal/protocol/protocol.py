@@ -1,4 +1,7 @@
+import struct
 from thrift.protocol.TProtocol import TProtocolBase
+from frugal.context import FContext
+from frugal.exceptions import FrugalVersionException
 
 
 class FProtocol(TProtocolBase):
@@ -6,26 +9,87 @@ class FProtocol(TProtocolBase):
     FProtocol is an extension of thrift TProtocol with the addition of headers
     """
 
-    def __init__(self, t_protocol):
-        self._t_protocol = t_protocol
+    def __init__(self, trans):
+        super(FProtocol, self).__init__(trans)
 
     def write_request_header(self, context):
-        pass
+        self._write_header(context.get_request_headers())
 
     def read_request_header(self):
-        pass
+        headers = self._read_header(self.trans)
+
+        context = FContext()
+
+        for key, value in headers.iteritems():
+            context.put_request_header(key, value)
+
+        op_id = headers['_opid']
+        context.set_response_op_id(op_id)
 
     def write_response_header(self, context):
-        pass
+        self._write_header(context.get_response_headers())
 
     def read_response_header(self):
         pass
 
-    def writeMessageBegin(self, name, ttype, seqid):
-        self._t_protocol.writeMessageBegin(self, name, ttype, seqid)
+    def _write_header(self, headers):
+        size = 0
+        for key, value in headers.iteritems():
+            size = size + 8 + len(key) + len(value)
 
-    def writeMessageEnd(self):
-        self._t_protocol.writeMessageEnd(self)
+        buff = bytearray(size + 5)
 
-    def writeStructBegin(self, name):
-        self._t_protocol.writeStructBegin(self, name)
+        struct.pack_into('>c', buff, 0, '0')
+        struct.pack_into('>I', buff, 1, size)
+
+        offset = 5
+
+        for key, value in headers.iteritems():
+            struct.pack_into('>I', buff, offset, len(key))
+            offset += 4
+
+            struct.pack_into('>{0}s'.format(str(len(key))), buff, offset, key)
+            offset += len(key)
+
+            struct.pack_into('>I', buff, offset, len(value))
+            offset += 4
+
+            struct.pack_into('>{0}s'.format(str(len(value))), buff,
+                             offset, value)
+            offset += len(value)
+
+        # self.trans.write(buff)
+        return buff
+
+    def _read_header(self, buff):
+        parsed_headers = {}
+
+        version = struct.unpack_from('>s', buff, 0)[0]
+
+        if version is not '0':
+            raise FrugalVersionException("Wrong Frugal version.")
+
+        size = struct.unpack_from('>I', buff, 1)[0]
+
+        offset = 5  # since size is 4 bytes
+
+        while offset < size:
+            # unpack key size and +4 offset
+            key_size = struct.unpack_from('>I', buff, offset)[0]
+            offset += 4
+
+            # unpack key string and +key size offset
+            key = struct.unpack_from('>{0}s'.format(key_size), buff, offset)[0]
+            offset += len(key)
+
+            # unpack value size and +4 offset
+            val_size = struct.unpack_from('>I', buff, offset)[0]
+            offset += 4
+
+            # unpack value string and +value size offset
+            val = struct.unpack_from('>{0}s'.format(val_size), buff, offset)[0]
+            offset += len(val)
+
+            parsed_headers[key] = val
+
+        return parsed_headers
