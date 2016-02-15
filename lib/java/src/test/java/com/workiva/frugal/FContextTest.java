@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 
+import com.workiva.frugal.protocol.FContext;
 import org.junit.Test;
 
 public class FContextTest {
@@ -19,15 +20,6 @@ public class FContextTest {
         String correlationId = "abc";
         FContext ctx = new FContext(correlationId);
         assertEquals(correlationId, ctx.getCorrelationId());
-    }
-
-    @Test
-    public void testOpId() {
-        FContext ctx1 = new FContext();
-        FContext ctx2 = new FContext();
-        FContext ctx3 = new FContext();
-        assertEquals(1, ctx2.getOpId() - ctx1.getOpId());
-        assertEquals(2, ctx3.getOpId() - ctx1.getOpId());
     }
 
     @Test

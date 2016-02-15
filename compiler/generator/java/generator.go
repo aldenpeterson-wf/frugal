@@ -13,16 +13,17 @@ import (
 )
 
 const (
-	lang                     = "java"
-	defaultOutputDir         = "gen-java"
-	tab                      = "\t"
-	tabtab                   = tab + tab
-	tabtabtab                = tab + tab + tab
-	tabtabtabtab             = tab + tab + tab + tab
-	tabtabtabtabtab          = tab + tab + tab + tab + tab
-	tabtabtabtabtabtab       = tab + tab + tab + tab + tab + tab
-	tabtabtabtabtabtabtab    = tab + tab + tab + tab + tab + tab + tab
-	tabtabtabtabtabtabtabtab = tab + tab + tab + tab + tab + tab + tab + tab
+	lang                        = "java"
+	defaultOutputDir            = "gen-java"
+	tab                         = "\t"
+	tabtab                      = tab + tab
+	tabtabtab                   = tab + tab + tab
+	tabtabtabtab                = tab + tab + tab + tab
+	tabtabtabtabtab             = tab + tab + tab + tab + tab
+	tabtabtabtabtabtab          = tab + tab + tab + tab + tab + tab
+	tabtabtabtabtabtabtab       = tab + tab + tab + tab + tab + tab + tab
+	tabtabtabtabtabtabtabtab    = tab + tab + tab + tab + tab + tab + tab + tab
+	tabtabtabtabtabtabtabtabtab = tab + tab + tab + tab + tab + tab + tab + tab + tab
 )
 
 type Generator struct {
@@ -97,13 +98,12 @@ func (g *Generator) generatePackage(file *os.File) error {
 }
 
 func (g *Generator) GenerateServiceImports(file *os.File, s *parser.Service) error {
-	imports := "import com.workiva.frugal.*;\n"
+	imports := "import com.workiva.frugal.exception.FMessageSizeException;\n"
 	imports += "import com.workiva.frugal.exception.FTimeoutException;\n"
 	imports += "import com.workiva.frugal.processor.FBaseProcessor;\n"
 	imports += "import com.workiva.frugal.processor.FProcessor;\n"
 	imports += "import com.workiva.frugal.processor.FProcessorFunction;\n"
-	imports += "import com.workiva.frugal.registry.FAsyncCallback;\n"
-	imports += "import com.workiva.frugal.registry.FClientRegistry;\n"
+	imports += "import com.workiva.frugal.protocol.*;\n"
 	imports += "import com.workiva.frugal.transport.FTransport;\n"
 	imports += "import org.apache.thrift.TApplicationException;\n"
 	imports += "import org.apache.thrift.TException;\n"
@@ -121,11 +121,10 @@ func (g *Generator) GenerateServiceImports(file *os.File, s *parser.Service) err
 }
 
 func (g *Generator) GenerateScopeImports(file *os.File, s *parser.Scope) error {
-	imports := "import com.workiva.frugal.FContext;\n"
-	imports += "import com.workiva.frugal.FScopeProvider;\n"
-	imports += "import com.workiva.frugal.FSubscription;\n"
-	imports += "import com.workiva.frugal.FProtocol;\n"
+	imports := "import com.workiva.frugal.protocol.*;\n"
+	imports += "import com.workiva.frugal.provider.FScopeProvider;\n"
 	imports += "import com.workiva.frugal.transport.FScopeTransport;\n"
+	imports += "import com.workiva.frugal.transport.FSubscription;\n"
 	imports += "import org.apache.thrift.TException;\n"
 	imports += "import org.apache.thrift.TApplicationException;\n"
 	imports += "import org.apache.thrift.transport.TTransportException;\n"
@@ -185,7 +184,7 @@ func (g *Generator) GeneratePublisher(file *os.File, scope *parser.Scope) error 
 		if op.Comment != nil {
 			publisher += g.GenerateBlockComment(op.Comment, tab)
 		}
-		publisher += fmt.Sprintf(tab+"public void publish%s(FContext ctx, %s%s req) throws TException {\n", op.Name, args, g.qualifiedParamName(op))
+		publisher += fmt.Sprintf(tab+"public void publish%s(FContext ctx, %s%s req) throws TException {\n", op.Name, args, g.qualifiedTypeName(op.Type))
 		publisher += fmt.Sprintf(tabtab+"String op = \"%s\";\n", op.Name)
 		publisher += fmt.Sprintf(tabtab+"String prefix = %s;\n", generatePrefixStringTemplate(scope))
 		publisher += tabtab + "String topic = String.format(\"%s" + strings.Title(scope.Name) + "%s%s\", prefix, DELIMITER, op);\n"
@@ -260,7 +259,7 @@ func (g *Generator) GenerateSubscriber(file *os.File, scope *parser.Scope) error
 	prefix := ""
 	for _, op := range scope.Operations {
 		subscriber += fmt.Sprintf(tab+"public interface %sHandler {\n", op.Name)
-		subscriber += fmt.Sprintf(tabtab+"void on%s(FContext ctx, %s req);\n", op.Name, g.qualifiedParamName(op))
+		subscriber += fmt.Sprintf(tabtab+"void on%s(FContext ctx, %s req);\n", op.Name, g.qualifiedTypeName(op.Type))
 		subscriber += tab + "}\n\n"
 
 		subscriber += prefix
@@ -284,7 +283,7 @@ func (g *Generator) GenerateSubscriber(file *os.File, scope *parser.Scope) error
 		subscriber += tabtabtabtabtab + "try {\n"
 		subscriber += tabtabtabtabtabtab + "FContext ctx = client.getProtocol().readRequestHeader();\n"
 		subscriber += tabtabtabtabtabtab + fmt.Sprintf("%s received = recv%s(op, client.getProtocol());\n",
-			g.qualifiedParamName(op), op.Name)
+			g.qualifiedTypeName(op.Type), op.Name)
 		subscriber += tabtabtabtabtabtab + fmt.Sprintf("handler.on%s(ctx, received);\n", op.Name)
 		subscriber += tabtabtabtabtab + "} catch (TException e) {\n"
 		subscriber += tabtabtabtabtabtab + "if (e instanceof TTransportException) {\n"
@@ -305,14 +304,14 @@ func (g *Generator) GenerateSubscriber(file *os.File, scope *parser.Scope) error
 		subscriber += tabtab + "return sub;\n"
 		subscriber += tab + "}\n\n"
 
-		subscriber += tab + fmt.Sprintf("private %s recv%s(String op, FProtocol iprot) throws TException {\n", g.qualifiedParamName(op), op.Name)
+		subscriber += tab + fmt.Sprintf("private %s recv%s(String op, FProtocol iprot) throws TException {\n", g.qualifiedTypeName(op.Type), op.Name)
 		subscriber += tabtab + "TMessage msg = iprot.readMessageBegin();\n"
 		subscriber += tabtab + "if (!msg.name.equals(op)) {\n"
 		subscriber += tabtabtab + "TProtocolUtil.skip(iprot, TType.STRUCT);\n"
 		subscriber += tabtabtab + "iprot.readMessageEnd();\n"
 		subscriber += tabtabtab + "throw new TApplicationException(TApplicationException.UNKNOWN_METHOD);\n"
 		subscriber += tabtab + "}\n"
-		subscriber += tabtab + fmt.Sprintf("%s req = new %s();\n", g.qualifiedParamName(op), g.qualifiedParamName(op))
+		subscriber += tabtab + fmt.Sprintf("%s req = new %s();\n", g.qualifiedTypeName(op.Type), g.qualifiedTypeName(op.Type))
 		subscriber += tabtab + "req.read(iprot);\n"
 		subscriber += tabtab + "iprot.readMessageEnd();\n"
 		subscriber += tabtab + "return req;\n"
@@ -513,7 +512,22 @@ func (g *Generator) generateClientMethod(service *parser.Service, method *parser
 	contents += tabtabtabtabtabtab + "if (message.type == TMessageType.EXCEPTION) {\n"
 	contents += tabtabtabtabtabtabtab + "TApplicationException e = TApplicationException.read(iprot);\n"
 	contents += tabtabtabtabtabtabtab + "iprot.readMessageEnd();\n"
-	contents += tabtabtabtabtabtabtab + "throw e;\n"
+	contents += tabtabtabtabtabtabtab + "if (e.getType() == FTransport.RESPONSE_TOO_LARGE) {\n"
+	contents += tabtabtabtabtabtabtabtab + "FMessageSizeException ex = new FMessageSizeException(FTransport.RESPONSE_TOO_LARGE, \"response too large for transport\");\n"
+	contents += tabtabtabtabtabtabtabtab + "try {\n"
+	contents += tabtabtabtabtabtabtabtabtab + "result.put(ex);\n"
+	contents += tabtabtabtabtabtabtabtabtab + "return;\n"
+	contents += tabtabtabtabtabtabtabtab + "} catch (InterruptedException ie) {\n"
+	contents += tabtabtabtabtabtabtabtabtab + fmt.Sprintf(
+		"throw new TApplicationException(TApplicationException.INTERNAL_ERROR, \"%s interrupted: \" + ie.getMessage());\n",
+		method.Name)
+	contents += tabtabtabtabtabtabtabtab + "}\n"
+	contents += tabtabtabtabtabtabtab + "}\n"
+	contents += tabtabtabtabtabtabtab + "try {\n"
+	contents += tabtabtabtabtabtabtabtab + "result.put(e);\n"
+	contents += tabtabtabtabtabtabtab + "} finally {\n"
+	contents += tabtabtabtabtabtabtabtab + "throw e;\n"
+	contents += tabtabtabtabtabtabtab + "}\n"
 	contents += tabtabtabtabtabtab + "}\n"
 	contents += tabtabtabtabtabtab + "if (message.type != TMessageType.REPLY) {\n"
 	contents += tabtabtabtabtabtabtab + fmt.Sprintf(
@@ -562,21 +576,21 @@ func (g *Generator) generateServer(service *parser.Service) string {
 	}
 	contents += tab + fmt.Sprintf("public static class Processor extends %s implements FProcessor {\n\n", extends)
 
-	contents += tab + "public Processor(Iface iface) {\n"
+	contents += tabtab + "public Processor(Iface iface) {\n"
 	if service.Extends != "" {
-		contents += tabtab + "super(iface, getProcessMap(iface, new java.util.HashMap<String, FProcessorFunction>()));\n"
+		contents += tabtabtab + "super(iface, getProcessMap(iface, new java.util.HashMap<String, FProcessorFunction>()));\n"
 	} else {
-		contents += tabtab + "super(getProcessMap(iface, new java.util.HashMap<String, FProcessorFunction>()));\n"
+		contents += tabtabtab + "super(getProcessMap(iface, new java.util.HashMap<String, FProcessorFunction>()));\n"
 	}
-	contents += tab + "}\n\n"
+	contents += tabtab + "}\n\n"
 
-	contents += tab + "protected Processor(Iface iface, java.util.Map<String, FProcessorFunction> processMap) {\n"
+	contents += tabtab + "protected Processor(Iface iface, java.util.Map<String, FProcessorFunction> processMap) {\n"
 	if service.Extends != "" {
-		contents += tabtab + "super(iface, getProcessMap(iface, processMap));\n"
+		contents += tabtabtab + "super(iface, getProcessMap(iface, processMap));\n"
 	} else {
-		contents += tabtab + "super(getProcessMap(iface, processMap));\n"
+		contents += tabtabtab + "super(getProcessMap(iface, processMap));\n"
 	}
-	contents += tab + "}\n\n"
+	contents += tabtab + "}\n\n"
 
 	contents += tabtab + "private static java.util.Map<String, FProcessorFunction> getProcessMap(Iface handler, java.util.Map<String, FProcessorFunction> processMap) {\n"
 	for _, method := range service.Methods {
@@ -601,13 +615,8 @@ func (g *Generator) generateServer(service *parser.Service) string {
 		contents += tabtabtabtab + "} catch (TException e) {\n"
 		contents += tabtabtabtabtab + "iprot.readMessageEnd();\n"
 		if !method.Oneway {
-			contents += tabtabtabtabtab + "TApplicationException x = new TApplicationException(TApplicationException.PROTOCOL_ERROR, e.getMessage());\n"
 			contents += tabtabtabtabtab + "synchronized (WRITE_LOCK) {\n"
-			contents += tabtabtabtabtabtab + "oprot.writeResponseHeader(ctx);\n"
-			contents += tabtabtabtabtabtab + fmt.Sprintf("oprot.writeMessageBegin(new TMessage(\"%s\", TMessageType.EXCEPTION, 0));\n", method.Name)
-			contents += tabtabtabtabtabtab + "x.write(oprot);\n"
-			contents += tabtabtabtabtabtab + "oprot.writeMessageEnd();\n"
-			contents += tabtabtabtabtabtab + "oprot.getTransport().flush();\n"
+			contents += tabtabtabtabtabtab + fmt.Sprintf("writeApplicationException(ctx, oprot, TApplicationException.PROTOCOL_ERROR, \"%s\", e.getMessage());\n", method.Name)
 			contents += tabtabtabtabtab + "}\n"
 		}
 		contents += tabtabtabtabtab + "throw e;\n"
@@ -635,29 +644,45 @@ func (g *Generator) generateServer(service *parser.Service) string {
 			contents += tabtabtabtabtab + fmt.Sprintf("result.%s = %s;\n", exception.Name, exception.Name)
 		}
 		contents += tabtabtabtab + "} catch (TException e) {\n"
-		contents += tabtabtabtabtab + fmt.Sprintf(
-			"TApplicationException x = new TApplicationException(TApplicationException.INTERNAL_ERROR, \"Internal error processing %s: \" + e.getMessage());\n",
-			method.Name)
 		contents += tabtabtabtabtab + "synchronized (WRITE_LOCK) {\n"
-		contents += tabtabtabtabtabtab + "oprot.writeResponseHeader(ctx);\n"
-		contents += tabtabtabtabtabtab + fmt.Sprintf("oprot.writeMessageBegin(new TMessage(\"%s\", TMessageType.EXCEPTION, 0));\n", method.Name)
-		contents += tabtabtabtabtabtab + "x.write(oprot);\n"
-		contents += tabtabtabtabtabtab + "oprot.writeMessageEnd();\n"
-		contents += tabtabtabtabtabtab + "oprot.getTransport().flush();\n"
+		contents += tabtabtabtabtabtab + fmt.Sprintf(
+			"writeApplicationException(ctx, oprot, TApplicationException.INTERNAL_ERROR, \"%s\", \"Internal error processing %s: \" + e.getMessage());\n",
+			method.Name, method.Name)
 		contents += tabtabtabtabtab + "}\n"
 		contents += tabtabtabtabtab + "throw e;\n"
 		contents += tabtabtabtab + "}\n"
 		contents += tabtabtabtab + "synchronized (WRITE_LOCK) {\n"
-		contents += tabtabtabtabtab + "oprot.writeResponseHeader(ctx);\n"
-		contents += tabtabtabtabtab + fmt.Sprintf("oprot.writeMessageBegin(new TMessage(\"%s\", TMessageType.REPLY, 0));\n", method.Name)
-		contents += tabtabtabtabtab + "result.write(oprot);\n"
-		contents += tabtabtabtabtab + "oprot.writeMessageEnd();\n"
-		contents += tabtabtabtabtab + "oprot.getTransport().flush();\n"
+		contents += tabtabtabtabtab + "try {\n"
+		contents += tabtabtabtabtabtab + "oprot.writeResponseHeader(ctx);\n"
+		contents += tabtabtabtabtabtab + fmt.Sprintf("oprot.writeMessageBegin(new TMessage(\"%s\", TMessageType.REPLY, 0));\n", method.Name)
+		contents += tabtabtabtabtabtab + "result.write(oprot);\n"
+		contents += tabtabtabtabtabtab + "oprot.writeMessageEnd();\n"
+		contents += tabtabtabtabtabtab + "oprot.getTransport().flush();\n"
+		contents += tabtabtabtabtab + "} catch (TException e) {\n"
+		contents += tabtabtabtabtabtab + "if (e instanceof FMessageSizeException) {\n"
+		contents += tabtabtabtabtabtabtab + fmt.Sprintf(
+			"writeApplicationException(ctx, oprot, FTransport.RESPONSE_TOO_LARGE, \"%s\", \"response too large: \" + e.getMessage());\n",
+			method.Name)
+		contents += tabtabtabtabtabtab + "} else {\n"
+		contents += tabtabtabtabtabtabtab + "throw e;\n"
+		contents += tabtabtabtabtabtab + "}\n"
+		contents += tabtabtabtabtab + "}\n"
 		contents += tabtabtabtab + "}\n"
 		contents += tabtabtab + "}\n"
 		contents += tabtab + "}\n\n"
 	}
+
+	contents += tabtab + "private static void writeApplicationException(FContext ctx, FProtocol oprot, int type, String method, String message) throws TException {\n"
+	contents += tabtabtab + "TApplicationException x = new TApplicationException(type, message);\n"
+	contents += tabtabtab + "oprot.writeResponseHeader(ctx);\n"
+	contents += tabtabtab + "oprot.writeMessageBegin(new TMessage(method, TMessageType.EXCEPTION, 0));\n"
+	contents += tabtabtab + "x.write(oprot);\n"
+	contents += tabtabtab + "oprot.writeMessageEnd();\n"
+	contents += tabtabtab + "oprot.getTransport().flush();\n"
+	contents += tabtab + "}\n\n"
+
 	contents += tab + "}\n\n"
+
 	contents += "}"
 
 	return contents
@@ -727,18 +752,6 @@ func (g *Generator) qualifiedTypeName(t *parser.Type) string {
 		namespace, ok := g.Frugal.NamespaceForInclude(include, lang)
 		if ok {
 			return fmt.Sprintf("%s.%s", namespace, param)
-		}
-	}
-	return param
-}
-
-func (g *Generator) qualifiedParamName(op *parser.Operation) string {
-	param := op.ParamName()
-	include := op.IncludeName()
-	if include != "" {
-		namespace, ok := g.Frugal.NamespaceForInclude(include, lang)
-		if ok {
-			param = fmt.Sprintf("%s.%s", namespace, param)
 		}
 	}
 	return param
