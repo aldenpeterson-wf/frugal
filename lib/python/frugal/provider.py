@@ -1,5 +1,4 @@
 
-
 class FScopeProvider(object):
     """
     FScopeProviders produce FScopeTransports and FProtocols for use
@@ -11,19 +10,23 @@ class FScopeProvider(object):
         self._protocol_factory = protocol_factory
 
     def build_client(self):
-        t = self._transport_factory.get_transport()
-        p = self._protocol_factory.get_protocol(t)
-        return Client(t, p)
+        transport = self._transport_factory.get_transport()
+        protocol = self._protocol_factory.get_protocol(transport)
+        return (transport, protocol)
 
 
-class Client(object):
+class FServiceProvider(object):
+    """
+    FServiceProviders produce FTransports and FProtocolFactories for use with
+    Frugal services and clients.
+    """
 
-    def __init__(self, transport, protocol):
+    def __init__(self, transport, protocol_factory):
         self._transport = transport
-        self._protocol = protocol
+        self._protocol_factory = protocol_factory
 
     def get_transport(self):
         return self._transport
 
-    def get_protocol(self):
-        return self._protocol
+    def get_protocol_factory(self):
+        return self._protocol_factory

@@ -1,8 +1,7 @@
-from thrift.protocol.TProtocol import TProtocolFactory
-from .protocol import FProtocol
+from . import FProtocol
 
 
-class FProtocolFactory(TProtocolFactory):
+class FProtocolFactory(object):
 
     def __init__(self, t_protocol_factory):
         self._t_protocol_factory = t_protocol_factory

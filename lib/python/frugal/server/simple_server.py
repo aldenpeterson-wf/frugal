@@ -19,8 +19,10 @@ class FSimpleServer(FServer):
                 continue
             itrans = self.inputTransportFactory.getTransport(client)
             otrans = self.outputTransportFactory.getTransport(client)
+
             iprot = self.inputProtocolFactory.getProtocol(itrans)
             oprot = self.outputProtocolFactory.getProtocol(otrans)
+
             try:
                 while True:
                     self.processor.process(iprot, oprot)

@@ -74,19 +74,15 @@ class FProtocol(TProtocolBase):
         offset = 5  # since size is 4 bytes
 
         while offset < size:
-            # unpack key size and +4 offset
             key_size = struct.unpack_from('>I', buff, offset)[0]
             offset += 4
 
-            # unpack key string and +key size offset
             key = struct.unpack_from('>{0}s'.format(key_size), buff, offset)[0]
             offset += len(key)
 
-            # unpack value size and +4 offset
             val_size = struct.unpack_from('>I', buff, offset)[0]
             offset += 4
 
-            # unpack value string and +value size offset
             val = struct.unpack_from('>{0}s'.format(val_size), buff, offset)[0]
             offset += len(val)
 
