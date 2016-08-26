@@ -8,11 +8,17 @@ import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TMessageType;
 import org.apache.thrift.protocol.TProtocolUtil;
 import org.apache.thrift.protocol.TType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
+/**
+ * Base message processor.
+ */
 public class FBaseProcessor implements FProcessor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(FBaseProcessor.class);
     protected static final Object WRITE_LOCK = new Object();
 
     private final Map<String, FProcessorFunction> processMap;
@@ -27,12 +33,19 @@ public class FBaseProcessor implements FProcessor {
         TMessage message = iprot.readMessageBegin();
         FProcessorFunction processor = this.processMap.get(message.name);
         if (processor != null) {
-            processor.process(ctx, iprot, oprot);
+            try {
+                processor.process(ctx, iprot, oprot);
+            } catch (Exception e) {
+                LOGGER.warn("Error processing request with correlationID "
+                        + ctx.getCorrelationId() + ": " + e.getMessage());
+                throw e;
+            }
             return;
         }
         TProtocolUtil.skip(iprot, TType.STRUCT);
         iprot.readMessageEnd();
-        TApplicationException e = new TApplicationException(TApplicationException.UNKNOWN_METHOD, "Unknown function " + message.name);
+        TApplicationException e =
+                new TApplicationException(TApplicationException.UNKNOWN_METHOD, "Unknown function " + message.name);
         synchronized (WRITE_LOCK) {
             oprot.writeResponseHeader(ctx);
             oprot.writeMessageBegin(new TMessage(message.name, TMessageType.EXCEPTION, 0));
@@ -42,5 +55,4 @@ public class FBaseProcessor implements FProcessor {
         }
         throw e;
     }
-
 }

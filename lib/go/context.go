@@ -16,13 +16,27 @@ var ErrTimeout = errors.New("frugal: request timed out")
 const (
 	cid            = "_cid"
 	opID           = "_opid"
-	defaultTimeout = time.Minute
+	defaultTimeout = 5 * time.Second
 )
 
-// FContext is the message context for a frugal message. A FContext should
-// belong to a single request for the lifetime of the request. It can be reused
-// once its request has completed, though they should generally not be reused.
-// This should only be constructed using NewFContext.
+// FContext is the context for a Frugal message. Every RPC has an FContext,
+// which can be used to set request headers, response headers, and the request
+// timeout. The default timeout is five seconds. An FContext is also sent with
+// every publish message which is then received by subscribers.
+//
+// In addition to headers, the FContext also contains a correlation ID which
+// can be used for distributed tracing purposes. A random correlation ID is
+// generated for each FContext if one is not provided.
+//
+// FContext also plays a key role in Frugal's multiplexing support. A unique,
+// per-request operation ID is set on every FContext before a request is made.
+// This operation ID is sent in the request and included in the response, which
+// is then used to correlate a response to a request. The operation ID is an
+// internal implementation detail and is not exposed to the user.
+//
+// An FContext should belong to a single request for the lifetime of that
+// request. It can be reused once the request has completed, though they should
+// generally not be reused.
 type FContext struct {
 	requestHeaders  map[string]string
 	responseHeaders map[string]string
@@ -78,14 +92,16 @@ func (c *FContext) opID() uint64 {
 }
 
 // AddRequestHeader adds a request header to the context for the given name.
-// The headers _cid and _opid are reserved.
-func (c *FContext) AddRequestHeader(name, value string) {
+// The headers _cid and _opid are reserved. Returns the same FContext to allow
+// for chaining calls.
+func (c *FContext) AddRequestHeader(name, value string) *FContext {
 	if name == cid || name == opID {
-		return
+		return c
 	}
 	c.mu.Lock()
 	c.requestHeaders[name] = value
 	c.mu.Unlock()
+	return c
 }
 
 // RequestHeader gets the named request header
@@ -108,12 +124,14 @@ func (c *FContext) RequestHeaders() map[string]string {
 }
 
 // AddResponseHeader adds a response header to the context for the given name.
-// The _opid header is reserved.
-func (c *FContext) AddResponseHeader(name, value string) {
+// The _opid header is reserved. Returns the same FContext to allow for
+// chaining calls.
+func (c *FContext) AddResponseHeader(name, value string) *FContext {
 	if name == opID {
-		return
+		return c
 	}
 	c.addResponseHeader(name, value)
+	return c
 }
 
 // ResponseHeader gets the named response header
@@ -135,11 +153,13 @@ func (c *FContext) ResponseHeaders() map[string]string {
 	return headers
 }
 
-// SetTimeout sets the request timeout. Default is 1 minute.
-func (c *FContext) SetTimeout(timeout time.Duration) {
+// SetTimeout sets the request timeout. Default is 5 seconds. Returns the same
+// FContext to allow for chaining calls.
+func (c *FContext) SetTimeout(timeout time.Duration) *FContext {
 	c.mu.Lock()
 	c.timeout = timeout
 	c.mu.Unlock()
+	return c
 }
 
 // Timeout returns the request timeout.
@@ -169,7 +189,8 @@ func (c *FContext) addResponseHeader(name, value string) {
 	c.mu.Unlock()
 }
 
-// generateCorrelationID returns a random string id
-func generateCorrelationID() string {
+// generateCorrelationID returns a random string id. It's assigned to a var for
+// testability purposes.
+var generateCorrelationID = func() string {
 	return strings.Replace(uuid.RandomUUID().String(), "-", "", -1)
 }

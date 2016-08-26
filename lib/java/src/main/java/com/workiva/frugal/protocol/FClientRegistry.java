@@ -2,13 +2,15 @@ package com.workiva.frugal.protocol;
 
 import com.workiva.frugal.exception.FException;
 import com.workiva.frugal.internal.Headers;
+import com.workiva.frugal.util.Pair;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TMemoryInputTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Logger;
 
 
 /**
@@ -17,10 +19,10 @@ import java.util.logging.Logger;
  */
 public class FClientRegistry implements FRegistry {
 
-    private static final Logger LOGGER = Logger.getLogger(FClientRegistry.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(FClientRegistry.class);
     private static final AtomicLong NEXT_OP_ID = new AtomicLong(0);
 
-    private Map<Long, Pair<FAsyncCallback, Thread>> handlers;
+    protected Map<Long, Pair<FAsyncCallback, Thread>> handlers;
 
     public FClientRegistry() {
         handlers = new ConcurrentHashMap<>();
@@ -33,12 +35,18 @@ public class FClientRegistry implements FRegistry {
      * @param callback the callback to register.
      */
     public void register(FContext context, FAsyncCallback callback) throws TException {
+        // An FContext can be reused for multiple requests. Because of this, every
+        // time an FContext is registered, it must be assigned a new op id to
+        // ensure we can properly correlate responses. We use a monotonically
+        // increasing atomic uint64 for this purpose. If the FContext already has
+        // an op id, it has been used for a request. We check the handlers map to
+        // ensure that request is not still in-flight.
         if (handlers.containsKey(context.getOpId())) {
             throw new FException("context already registered");
         }
         long opId = NEXT_OP_ID.incrementAndGet();
         context.setOpId(opId);
-        handlers.put(opId, new Pair<>(callback, Thread.currentThread()));
+        handlers.put(opId, Pair.of(callback, Thread.currentThread()));
     }
 
     /**
@@ -47,6 +55,9 @@ public class FClientRegistry implements FRegistry {
      * @param context the FContext to unregister.
      */
     public void unregister(FContext context) {
+        if (context == null) {
+            return;
+        }
         handlers.remove(context.getOpId());
     }
 
@@ -65,31 +76,20 @@ public class FClientRegistry implements FRegistry {
         } catch (NumberFormatException e) {
             throw new FException("frame missing opId");
         }
-        if (!handlers.containsKey(opId)) {
+
+        Pair<FAsyncCallback, Thread> callbackThreadPair = handlers.get(opId);
+        if (callbackThreadPair == null) {
             LOGGER.info("Got a message for an unregistered context. Dropping.");
             return;
         }
-
-        Pair<FAsyncCallback, Thread> pair = handlers.get(opId);
-        pair.first.onMessage(new TMemoryInputTransport(frame));
+        callbackThreadPair.getLeft().onMessage(new TMemoryInputTransport(frame));
     }
 
     /**
      * Interrupt any registered contexts.
      */
     public void close() {
-        for (Pair<FAsyncCallback, Thread> pair : handlers.values()) {
-            pair.second.interrupt();
-        }
-    }
-
-    private static class Pair<K, V> {
-        K first;
-        V second;
-
-        Pair(K first, V second) {
-            this.first = first;
-            this.second = second;
-        }
+        handlers.values().parallelStream().forEach(pair -> pair.getRight().interrupt());
+        handlers.clear();
     }
 }

@@ -2,12 +2,24 @@ package com.workiva.frugal.protocol;
 
 import com.workiva.frugal.internal.Headers;
 import org.apache.thrift.TException;
-import org.apache.thrift.protocol.*;
+import org.apache.thrift.protocol.TField;
+import org.apache.thrift.protocol.TList;
+import org.apache.thrift.protocol.TMap;
+import org.apache.thrift.protocol.TMessage;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.protocol.TSet;
+import org.apache.thrift.protocol.TStruct;
 
 import java.nio.ByteBuffer;
 
 /**
- * FProtocol is an extension of thrift TProtocol with the addition of headers.
+ * FProtocol is Frugal's equivalent of Thrift's TProtocol. It defines the
+ * serialization protocol used for messages, such as JSON, binary, etc. FProtocol
+ * actually extends TProtocol and adds support for serializing FContext. In
+ * practice, FProtocol simply wraps a TProtocol and uses Thrift's built-in
+ * serialization. FContext is encoded before the TProtocol serialization of the
+ * message using a simple binary protocol. See the protocol documentation for more
+ * details.
  */
 public class FProtocol extends TProtocol {
 

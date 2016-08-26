@@ -5,46 +5,70 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
 	"github.com/nats-io/nats"
 )
 
+// frameBufferSize is the number of message frames to buffer on the subscriber.
+const frameBufferSize = 5
+
 // FNatsScopeTransportFactory creates FNatsScopeTransports.
 type FNatsScopeTransportFactory struct {
-	conn *nats.Conn
+	conn  *nats.Conn
+	queue string
 }
 
+// NewFNatsScopeTransportFactory creates an FNatsScopeTransportFactory using
+// the provided NATS connection. Subscribers using this transport will not use
+// a queue.
 func NewFNatsScopeTransportFactory(conn *nats.Conn) *FNatsScopeTransportFactory {
-	return &FNatsScopeTransportFactory{conn}
+	return &FNatsScopeTransportFactory{conn: conn}
+}
+
+// NewFNatsScopeTransportFactoryWithQueue creates an FNatsScopeTransportFactory
+// using the provided NATS connection. Subscribers using this transport will
+// subscribe to the provided queue, forming a queue group. When a queue group
+// is formed, only one member receives the message.
+func NewFNatsScopeTransportFactoryWithQueue(conn *nats.Conn, queue string) *FNatsScopeTransportFactory {
+	return &FNatsScopeTransportFactory{conn: conn, queue: queue}
 }
 
 // GetTransport creates a new NATS FScopeTransport.
 func (n *FNatsScopeTransportFactory) GetTransport() FScopeTransport {
-	return NewNatsFScopeTransport(n.conn)
+	return NewNatsFScopeTransportWithQueue(n.conn, n.queue)
 }
 
 // fNatsScopeTransport implements FScopeTransport.
 type fNatsScopeTransport struct {
-	conn        *nats.Conn
-	subject     string
-	reader      *io.PipeReader
-	writer      *io.PipeWriter
-	writeBuffer *bytes.Buffer
-	sub         *nats.Subscription
-	pull        bool
-	topicMu     sync.Mutex
-	openMu      sync.RWMutex
-	isOpen      bool
-	sizeBuffer  []byte
+	conn         *nats.Conn
+	subject      string
+	queue        string
+	frameBuffer  chan []byte
+	closeChan    chan struct{}
+	currentFrame []byte
+	writeBuffer  *bytes.Buffer
+	sub          *nats.Subscription
+	pull         bool
+	topicMu      sync.Mutex
+	openMu       sync.RWMutex
+	isOpen       bool
+	sizeBuffer   []byte
 }
 
 // NewNatsFScopeTransport creates a new FScopeTransport which is used for
-// pub/sub.
+// pub/sub. Subscribers using this transport will not use a queue.
 func NewNatsFScopeTransport(conn *nats.Conn) FScopeTransport {
 	return &fNatsScopeTransport{conn: conn}
+}
+
+// NewNatsFScopeTransportWithQueue creates a new FScopeTransport which is used
+// for pub/sub. Subscribers using this transport will subscribe to the provided
+// queue, forming a queue group. When a queue group is formed, only one member
+// receives the message.
+func NewNatsFScopeTransportWithQueue(conn *nats.Conn, queue string) FScopeTransport {
+	return &fNatsScopeTransport{conn: conn, queue: queue}
 }
 
 // LockTopic sets the publish topic and locks the transport for exclusive
@@ -104,22 +128,28 @@ func (n *fNatsScopeTransport) Open() error {
 			"cannot subscribe to empty subject")
 	}
 
-	n.reader, n.writer = io.Pipe()
+	n.closeChan = make(chan struct{})
+	n.frameBuffer = make(chan []byte, frameBufferSize)
 
-	sub, err := n.conn.Subscribe(n.formattedSubject(), func(msg *nats.Msg) {
-		if len(msg.Data) < 4 {
-			log.Println("frugal: Discarding invalid scope message frame")
-			return
-		}
-		// Discard frame size.
-		n.writer.Write(msg.Data[4:])
-	})
+	sub, err := n.conn.QueueSubscribe(n.formattedSubject(), n.queue, n.handleMessage)
 	if err != nil {
 		return thrift.NewTTransportExceptionFromError(err)
 	}
 	n.sub = sub
 	n.isOpen = true
 	return nil
+}
+
+func (n *fNatsScopeTransport) handleMessage(msg *nats.Msg) {
+	if len(msg.Data) < 4 {
+		logger().Warn("frugal: Discarding invalid scope message frame")
+		return
+	}
+	// Discard frame size.
+	select {
+	case n.frameBuffer <- msg.Data[4:]:
+	case <-n.closeChan:
+	}
 }
 
 func (n *fNatsScopeTransport) IsOpen() bool {
@@ -155,27 +185,42 @@ func (n *fNatsScopeTransport) Close() error {
 		return thrift.NewTTransportExceptionFromError(err)
 	}
 	n.sub = nil
-	err := n.writer.Close()
-	n.writer = nil
+	close(n.closeChan)
 	n.isOpen = false
-	return thrift.NewTTransportExceptionFromError(err)
+	return nil
 }
 
 func (n *fNatsScopeTransport) Read(p []byte) (int, error) {
 	if !n.IsOpen() {
-		return 0, n.getClosedConditionError("read:")
+		return 0, thrift.NewTTransportExceptionFromError(io.EOF)
 	}
-	num, err := n.reader.Read(p)
-	return num, thrift.NewTTransportExceptionFromError(err)
+	if len(n.currentFrame) == 0 {
+		select {
+		case frame := <-n.frameBuffer:
+			n.currentFrame = frame
+		case <-n.closeChan:
+			return 0, thrift.NewTTransportExceptionFromError(io.EOF)
+		}
+	}
+	num := copy(p, n.currentFrame)
+	// TODO: We could be more efficient here. If the provided buffer isn't
+	// full, we could attempt to get the next frame.
+
+	n.currentFrame = n.currentFrame[num:]
+	return num, nil
+}
+
+// DiscardFrame discards the current message frame the transport is reading, if
+// any. After calling this, a subsequent call to Read will read from the next
+// frame. This must be called from the same goroutine as the goroutine calling
+// Read.
+func (n *fNatsScopeTransport) DiscardFrame() {
+	n.currentFrame = nil
 }
 
 // Write bytes to publish. If buffered bytes exceeds 1MB, ErrTooLarge is
 // returned.
 func (n *fNatsScopeTransport) Write(p []byte) (int, error) {
-	if !n.IsOpen() {
-		return 0, n.getClosedConditionError("write:")
-	}
-
 	// Include 4 bytes for frame size.
 	if len(p)+n.writeBuffer.Len()+4 > natsMaxMessageSize {
 		n.writeBuffer.Reset() // Clear any existing bytes.
@@ -186,8 +231,7 @@ func (n *fNatsScopeTransport) Write(p []byte) (int, error) {
 	return num, thrift.NewTTransportExceptionFromError(err)
 }
 
-// Flush publishes the buffered message. Returns ErrTooLarge if the buffered
-// message exceeds 1MB.
+// Flush publishes the buffered message.
 func (n *fNatsScopeTransport) Flush() error {
 	if !n.IsOpen() {
 		return n.getClosedConditionError("flush:")
@@ -196,10 +240,6 @@ func (n *fNatsScopeTransport) Flush() error {
 	data := n.writeBuffer.Bytes()
 	if len(data) == 0 {
 		return nil
-	}
-	// Include 4 bytes for frame size.
-	if len(data)+4 > natsMaxMessageSize {
-		return ErrTooLarge
 	}
 	binary.BigEndian.PutUint32(n.sizeBuffer, uint32(len(data)))
 	err := n.conn.Publish(n.formattedSubject(), append(n.sizeBuffer, data...))

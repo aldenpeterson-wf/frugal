@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"reflect"
 	"time"
 
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -27,6 +29,7 @@ func main() {
 		protocol = flag.String("P", "binary", "Specify the protocol (binary, compact, json, simplejson)")
 		addr     = flag.String("addr", nats.DefaultURL, "NATS address")
 		secure   = flag.Bool("secure", false, "Use tls secure transport")
+		port     = flag.String("port", "8090", "Port for http transport")
 	)
 	flag.Parse()
 
@@ -47,7 +50,6 @@ func main() {
 	}
 
 	fprotocolFactory := frugal.NewFProtocolFactory(protocolFactory)
-	ftransportFactory := frugal.NewFMuxTransportFactory(5)
 
 	natsOptions := nats.DefaultOptions
 	natsOptions.Servers = []string{*addr}
@@ -61,14 +63,14 @@ func main() {
 		if err := runPublisher(conn, fprotocolFactory); err != nil {
 			fmt.Println("error running publisher:", err)
 		}
-		if err := runClient(conn, ftransportFactory, fprotocolFactory); err != nil {
+		if err := runClient(conn, fprotocolFactory, *port); err != nil {
 			fmt.Println("error running client:", err)
 		}
 	} else {
 		if err := runSubscriber(conn, fprotocolFactory); err != nil {
 			fmt.Println("error running subscriber:", err)
 		}
-		if err := runServer(conn, ftransportFactory, fprotocolFactory); err != nil {
+		if err := runServer(conn, fprotocolFactory, *port); err != nil {
 			fmt.Println("error running server:", err)
 		}
 	}
@@ -101,14 +103,24 @@ func handleClient(client *event.FFooClient) (err error) {
 }
 
 // Client runner
-func runClient(conn *nats.Conn, transportFactory frugal.FTransportFactory, protocolFactory *frugal.FProtocolFactory) error {
-	transport := frugal.NewNatsServiceTTransport(conn, "foo", 5*time.Second, 2)
-	ftransport := transportFactory.GetTransport(transport)
-	defer ftransport.Close()
-	if err := ftransport.Open(); err != nil {
+func runClient(conn *nats.Conn, protocolFactory *frugal.FProtocolFactory, port string) error {
+	natsT := frugal.NewFNatsTransport(conn, "foo", "bar")
+	defer natsT.Close()
+	if err := natsT.Open(); err != nil {
 		return err
 	}
-	return handleClient(event.NewFFooClient(ftransport, protocolFactory))
+
+	if err := handleClient(event.NewFFooClient(natsT, protocolFactory)); err != nil {
+		return err
+	}
+
+	httpT := frugal.NewHttpFTransportBuilder(&http.Client{}, fmt.Sprintf("http://localhost:%s/frugal", port)).Build()
+	defer httpT.Close()
+	if err := httpT.Open(); err != nil {
+		return err
+	}
+
+	return handleClient(event.NewFFooClient(httpT, protocolFactory))
 }
 
 // Sever handler
@@ -116,34 +128,39 @@ type FooHandler struct {
 }
 
 func (f *FooHandler) Ping(ctx *frugal.FContext) error {
-	fmt.Printf("Ping(%s)\n", ctx)
+	fmt.Printf("Ping(%+v)\n", ctx)
 	return nil
 }
 
 func (f *FooHandler) Blah(ctx *frugal.FContext, num int32, str string, e *event.Event) (int64, error) {
-	fmt.Printf("Blah(%s, %d, %s, %v)\n", ctx, num, str, e)
+	fmt.Printf("Blah(%+v, %d, %s, %v)\n", ctx, num, str, e)
 	ctx.AddResponseHeader("foo", "bar")
 	return 42, nil
 }
 
 func (f *FooHandler) BasePing(ctx *frugal.FContext) error {
-	fmt.Printf("BasePing(%s)\n", ctx)
+	fmt.Printf("BasePing(%+v)\n", ctx)
 	return nil
 }
 
 func (f *FooHandler) OneWay(ctx *frugal.FContext, id event.ID, req event.Request) error {
-	fmt.Printf("OneWay(%s, %s, %s)\n", ctx, id, req)
+	fmt.Printf("OneWay(%+v, %s, %s)\n", ctx, id, req)
 	return nil
 }
 
 // Server runner
-func runServer(conn *nats.Conn, transportFactory frugal.FTransportFactory,
-	protocolFactory *frugal.FProtocolFactory) error {
+func runServer(conn *nats.Conn, protocolFactory *frugal.FProtocolFactory, port string) error {
 	handler := &FooHandler{}
 	processor := event.NewFFooProcessor(handler)
-	server := frugal.NewFNatsServerFactory(conn, "foo", 20*time.Second, 2,
-		frugal.NewFProcessorFactory(processor), transportFactory, protocolFactory)
-	fmt.Println("Starting the simple nats server... on ", "foo")
+
+	http.HandleFunc("/frugal", frugal.NewFrugalHandlerFunc(processor, protocolFactory, protocolFactory))
+	go func() {
+		fmt.Printf("Starting the http server... on :%s/frugal\n", port)
+		http.ListenAndServe(fmt.Sprintf(":%s", port), http.DefaultServeMux)
+	}()
+
+	server := frugal.NewFNatsServerBuilder(conn, processor, protocolFactory, "foo").Build()
+	fmt.Println("Starting the nats server... on ", "foo")
 	return server.Serve()
 }
 
@@ -178,4 +195,33 @@ func runPublisher(conn *nats.Conn, protocolFactory *frugal.FProtocolFactory) err
 	}
 	fmt.Println("EventCreated()")
 	return nil
+}
+
+func newLoggingMiddleware() frugal.ServiceMiddleware {
+	return func(next frugal.InvocationHandler) frugal.InvocationHandler {
+		return func(service reflect.Value, method reflect.Method, args frugal.Arguments) frugal.Results {
+			fmt.Printf("==== CALLING %s.%s ====\n", service.Type(), method.Name)
+			ret := next(service, method, args)
+			fmt.Printf("==== CALLED  %s.%s ====\n", service.Type(), method.Name)
+			return ret
+		}
+	}
+}
+
+func newRetryMiddleware() frugal.ServiceMiddleware {
+	return func(next frugal.InvocationHandler) frugal.InvocationHandler {
+		return func(service reflect.Value, method reflect.Method, args frugal.Arguments) frugal.Results {
+			var ret frugal.Results
+			for i := 0; i < 5; i++ {
+				ret = next(service, method, args)
+				if ret.Error() != nil {
+					fmt.Printf("%s.%s failed (%s), retrying...\n", service.Type(), method.Name, ret.Error())
+					time.Sleep(500 * time.Millisecond)
+					continue
+				}
+				return ret
+			}
+			return ret
+		}
+	}
 }

@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/Workiva/frugal/compiler"
 	"github.com/Workiva/frugal/compiler/generator"
 	"github.com/Workiva/frugal/compiler/globals"
-	"github.com/codegangsta/cli"
+	"github.com/Workiva/frugal/compiler/parser"
+	"github.com/urfave/cli"
 )
 
 const defaultTopicDelim = "."
@@ -17,6 +19,7 @@ var (
 	gen                string
 	out                string
 	delim              string
+	audit              string
 	retainIntermediate bool
 	recurse            bool
 	verbose            bool
@@ -72,10 +75,14 @@ func main() {
 			Name:        "version",
 			Usage:       "print the version",
 			Destination: &version,
+		}, cli.StringFlag{
+			Name:        "audit",
+			Usage:       "frugal file to run audit against",
+			Destination: &audit,
 		},
 	}
 
-	app.Action = func(c *cli.Context) {
+	app.Action = func(c *cli.Context) error {
 		if help {
 			cli.ShowAppHelp(c)
 			os.Exit(0)
@@ -92,16 +99,14 @@ func main() {
 			os.Exit(1)
 		}
 
-		if gen == "" {
+		if gen == "" && audit == "" {
 			fmt.Println("No output language specified")
 			fmt.Printf("Usage: %s [options] file\n\n", app.Name)
 			fmt.Printf("Use %s -help for a list of options\n", app.Name)
 			os.Exit(1)
 		}
 
-		file := c.Args()[0]
 		options := compiler.Options{
-			File:               file,
 			Gen:                gen,
 			Out:                out,
 			Delim:              delim,
@@ -110,10 +115,29 @@ func main() {
 			Verbose:            verbose,
 		}
 
-		if err := compiler.Compile(options); err != nil {
-			fmt.Printf("Failed to generate %s:\n\t%s\n", options.File, err.Error())
-			os.Exit(1)
+		// Handle panics for graceful error messages.
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Printf("Failed to generate %s:\n\t%s\n", options.File, r)
+				os.Exit(1)
+			}
+		}()
+
+		var err error
+		auditor := parser.NewAuditor()
+		for _, options.File = range c.Args() {
+			if audit == "" {
+				err = compiler.Compile(options)
+			} else {
+				err = auditor.Audit(audit, options.File)
+			}
+			if err != nil {
+				fmt.Printf("Failed to generate %s:\n\t%s\n", options.File, err.Error())
+				os.Exit(1)
+			}
 		}
+
+		return nil
 	}
 
 	app.Run(os.Args)
@@ -122,16 +146,25 @@ func main() {
 func genUsage() string {
 	usage := "generate code with a registered generator and optional parameters " +
 		"(lang[:key1=val1[,key2[,key3=val3]]])\n"
-	prefix := ""
-	for lang, options := range generator.Languages {
+	langKeys := make([]string, 0, len(generator.Languages))
+	for lang := range generator.Languages {
+		langKeys = append(langKeys, lang)
+	}
+	sort.Strings(langKeys)
+	langPrefix := ""
+	for _, lang := range langKeys {
+		options := generator.Languages[lang]
 		optionsStr := ""
-		optionsPrefix := ""
-		for _, option := range options {
-			optionsStr += optionsPrefix + option
-			optionsPrefix = ", "
+		optionKeys := make([]string, 0, len(options))
+		for name := range options {
+			optionKeys = append(optionKeys, name)
 		}
-		usage += fmt.Sprintf("%s\t    %s\t%s", prefix, lang, optionsStr)
-		prefix = "\n"
+		sort.Strings(optionKeys)
+		for _, name := range optionKeys {
+			optionsStr += fmt.Sprintf("\n\t        %s:\t%s", name, options[name])
+		}
+		usage += fmt.Sprintf("%s\t    %s:%s", langPrefix, lang, optionsStr)
+		langPrefix = "\n"
 	}
 	return usage
 }

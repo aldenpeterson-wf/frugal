@@ -1,0 +1,23 @@
+project: frugal
+language: golang
+
+## https://github.com/Workiva/skynet-images/tree/ea53c331b4b7dddc1f617588d901f64f6050764a
+#runner_image: drydock.workiva.org/workiva/skynet-images:51355
+runner_image: drydock.workiva.org/workiva/skynet-images:60500
+
+script:
+    - ./scripts/smithy.sh
+    - tar -czf goLib.tar.gz ./lib/go
+    - export PATH=$PATH:./bin && ./frugal --gen dart -r --out='test/integration/dart/gen-dart' test/integration/frugalTest.frugal
+
+artifacts:
+    artifactory:
+        - frugal-*.jar
+    release:
+        - /frugal
+    go_library:
+        - goLib.tar.gz
+    pub:
+        - frugal.pub.tgz
+    pypi:
+        - frugal-*.tar.gz

@@ -5,28 +5,85 @@ provides additional functionality. Specifically, it includes support for
 request headers, request multiplexing, thread safety, and code-generated
 pub/sub APIs. Frugal is intended to act as a superset of Thrift, meaning it
 implements the same functionality as Thrift with some additional
-features.
+features. For a more detailed explanation, see the
+[documentation](documentation).
 
-Currently supported languages are Go, Java, and Dart. The Dart library code
-is in a [separate repo](https://github.com/Workiva/frugal-dart) until it
-can be hosted on Pub.
+Currently supported languages are Go, Java, and Dart.
 
 ## Installation
 
-Install Thrift. Dart support has not yet been released for Thrift, so we must
-install from `HEAD` for the time being.
-```
-brew update
-brew install thrift --with-java --with-python --HEAD
+### Download
+
+Pre-compiled binaries for OS X and Linux are available from the Github
+releases tab. Currently, adding these binaries is a manual process. If
+a downloadable release is missing, notify the messaging team to have it
+added.
+
+### From Source
+
+1.  Install [go](https://golang.org/doc/install) and setup [`GOPATH`](https://github.com/golang/go/wiki/GOPATH).
+1.  Install [godep](https://github.com/tools/godep).
+1.  Get the frugal source code
+
+    ```bash
+    $ go get github.com/Workiva/frugal
+    ```
+
+    Or you can manually clone the frugal repo
+
+    ```bash
+    $ mkdir -p $GOPATH/src/github.com/Workiva/
+    $ cd $GOPATH/src/github.com/Workiva
+    $ git clone git@github.com:Workiva/frugal.git
+    ```
+
+1.  Install frugal with godep
+    ```bash
+    $ cd $GOPATH/src/github.com/Workiva/frugal
+    $ godep go install
+    ```
+
+## Using the Thrift compiler (DEPRECATED)
+You may use the thrift compiler to generate parts of the internal code used by frugal using the --gen_with_frugal=false flag.
+
+To do so, install Thrift. Dart support has not yet been released for Thrift, so we use a fork for the time-being.
+
+### From Source
+
+Clone the fork
+```bash
+git clone git@github.com:stevenosborne-wf/thrift.git
+cd thrift
+git checkout 0.9.3-wk-3
 ```
 
-Install Frugal
-```
-$ go get github.com/Workiva/frugal
+Configure the install (Note: you make need to install build dependencies)
+```bash
+./bootstrap.sh
+./configure --without-perl --without-php --without-cpp --without-nodejs --enable-libs=no --enable-tests=no --enable-tutorial=no PY_PREFIX="$VIRTUAL_ENV"
 ```
 
-If you don't have a Go environment setup or don't want to install Thrift you
-can use Docker. [Check the bottom of the Readme](#docker) for more info.
+Install Thrift
+```
+make
+make install
+```
+
+### From Homebrew
+
+Add the Workiva tap:
+
+```
+brew tap Workiva/workiva git@github.com:Workiva/homebrew-workiva.git
+```
+
+then install Thrift:
+
+```
+brew install Workiva/workiva/thrift
+```
+
+Expect the build to take about 3 minutes.
 
 ## Usage
 

@@ -3,9 +3,17 @@ package com.workiva.frugal.transport;
 import com.google.gson.Gson;
 import com.workiva.frugal.exception.FMessageSizeException;
 import com.workiva.frugal.internal.NatsConnectionProtocol;
-import io.nats.client.*;
+import io.nats.client.AsyncSubscription;
+import io.nats.client.Connection;
+import io.nats.client.Constants;
+import io.nats.client.Message;
+import io.nats.client.MessageHandler;
+import io.nats.client.Subscription;
+import io.nats.client.SyncSubscription;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PipedInputStream;
@@ -13,14 +21,18 @@ import java.io.PipedOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
 
 /**
  * TNatsServiceTransport is an extension of thrift.TTransport exclusively used for services which uses NATS as the
  * underlying transport. Message frames are limited to 1MB in size.
+ *
+ * @deprecated With the next major release of frugal, stateful NATS transports will no longer be supported.
+ * Use the "stateless" FNatsTransport instead.
  */
+@Deprecated
 public class TNatsServiceTransport extends TTransport {
 
     // NATS limits messages to 1MB.
@@ -28,30 +40,35 @@ public class TNatsServiceTransport extends TTransport {
     public static final String FRUGAL_PREFIX = "frugal.";
 
     private static final String DISCONNECT = "DISCONNECT";
+    private static final Logger LOGGER = LoggerFactory.getLogger(TNatsServiceTransport.class);
 
     private Connection conn;
     private PipedOutputStream writer;
     private PipedInputStream reader;
     private ByteBuffer writeBuffer;
     private Subscription sub;
-    private String listenTo;
-    private String writeTo;
+    protected String listenTo;
+    protected String writeTo;
+
     private AsyncSubscription heartbeatSub;
-    private String heartbeatListen;
-    private String heartbeatReply;
-    private long heartbeatInterval;
+    protected String heartbeatListen;
+    protected String heartbeatReply;
+    protected long heartbeatInterval;
     private Timer heartbeatTimer;
     private AtomicInteger missedHeartbeats;
+
     private String connectionSubject;
     private final long connectionTimeout;
     private final int maxMissedHeartbeats;
-    private boolean isOpen;
-
-    private static Logger LOGGER = Logger.getLogger(TNatsServiceTransport.class.getName());
+    protected boolean isOpen;
 
     /**
-     * Used for constructing server side of TNatsServiceTransport
+     * Used for constructing server side of TNatsServiceTransport.
+     *
+     * @deprecated With the next major release of frugal, stateful NATS transports will no longer be supported.
+     * Use the "stateless" FNatsTransport instead.
      */
+    @Deprecated
     private TNatsServiceTransport(Connection conn, String listenTo, String writeTo) {
         this.conn = conn;
         this.listenTo = listenTo;
@@ -63,9 +80,16 @@ public class TNatsServiceTransport extends TTransport {
     }
 
     /**
-     * Used for constructing client side of TNatsServiceTransport
+     * Used for constructing client side of TNatsServiceTransport.
+     *
+     * @deprecated With the next major release of frugal, stateful NATS transports will no longer be supported.
+     * Use the "stateless" FNatsTransport instead.
      */
-    private TNatsServiceTransport(Connection conn, String connectionSubject, long connectionTimeout, int maxMissedHeartbeats) {
+    @Deprecated
+    private TNatsServiceTransport(Connection conn,
+                                  String connectionSubject,
+                                  long connectionTimeout,
+                                  int maxMissedHeartbeats) {
         this.conn = conn;
         this.connectionSubject = connectionSubject;
         this.connectionTimeout = connectionTimeout;
@@ -74,30 +98,42 @@ public class TNatsServiceTransport extends TTransport {
     }
 
     /**
-     * Returns a new thrift TTransport which uses the NATS messaging system as the
-     * underlying transport. It performs a handshake with a server listening on the
-     * given NATS subject upon open. This TTransport can only be used with
-     * FNatsServer.
+     * Returns a new thrift TTransport which uses the NATS messaging system as the underlying transport.
+     * It performs a handshake with a server listening on the given NATS subject upon open.
+     * This TTransport can only be used with FNatsServer.
+     *
+     * @deprecated With the next major release of frugal, stateful NATS transports will no longer be supported.
+     * Use the "stateless" FNatsTransport instead.
      */
+    @Deprecated
     public static TNatsServiceTransport client(Connection conn, String subject, long timeout, int maxMissedHeartbeats) {
         return new TNatsServiceTransport(conn, subject, timeout, maxMissedHeartbeats);
     }
 
     /**
-     * Returns a new thrift TTransport which uses the NATS messaging system as the
-     * underlying transport. This TTransport can only be used with FNatsServer.
+     * Returns a new thrift TTransport which uses the NATS messaging system as the underlying transport.
+     * This TTransport can only be used with FNatsServer.
+     *
+     * @deprecated With the next major release of frugal, stateful NATS transports will no longer be supported.
+     * Use the "stateless" FNatsTransport instead.
      */
+    @Deprecated
     public static TNatsServiceTransport server(Connection conn, String listenTo, String writeTo) {
         return new TNatsServiceTransport(conn, listenTo, writeTo);
     }
 
+    private boolean isClient() {
+        return connectionSubject != null;
+    }
+
     @Override
-    public synchronized boolean isOpen() { return conn.getState() == Constants.ConnState.CONNECTED && isOpen; }
+    public synchronized boolean isOpen() {
+        return conn.getState() == Constants.ConnState.CONNECTED && isOpen;
+    }
 
     /**
      * Opens the transport for reading/writing.
      * Performs a handshake with the server if this is a client transport.
-     *
      *
      * @throws TTransportException if the transport could not be opened
      */
@@ -111,7 +147,7 @@ public class TNatsServiceTransport extends TTransport {
             throw new TTransportException(TTransportException.ALREADY_OPEN, "NATS transport already open");
         }
 
-        if (connectionSubject != null) {
+        if (isClient()) {
             handshake();
         }
 
@@ -132,6 +168,11 @@ public class TNatsServiceTransport extends TTransport {
             @Override
             public void onMessage(Message msg) {
                 if (DISCONNECT.equals(msg.getReplyTo())) {
+                    if (isClient()) {
+                        LOGGER.error("received unexpected disconnect from the server");
+                    } else {
+                        LOGGER.info("client closed cleanly");
+                    }
                     close();
                     return;
                 }
@@ -139,7 +180,7 @@ public class TNatsServiceTransport extends TTransport {
                     writer.write(msg.getData());
                     writer.flush();
                 } catch (IOException e) {
-                    LOGGER.warning("could not write incoming data to buffer" + e.getMessage());
+                    LOGGER.warn("could not write incoming data to buffer" + e.getMessage());
                 }
             }
         });
@@ -151,7 +192,11 @@ public class TNatsServiceTransport extends TTransport {
                 @Override
                 public void onMessage(Message message) {
                     receiveHeartbeat();
-                    conn.publish(heartbeatReply, null);
+                    try {
+                        conn.publish(heartbeatReply, null);
+                    } catch (IOException e) {
+                        LOGGER.warn("could not publish heartbeat: " + e.getMessage());
+                    }
                 }
             });
         }
@@ -171,12 +216,12 @@ public class TNatsServiceTransport extends TTransport {
             throw new TTransportException(TTransportException.TIMED_OUT, "Handshake timed out", e);
         }
         String reply = message.getReplyTo();
-        if (reply == null || reply.isEmpty() ) {
+        if (reply == null || reply.isEmpty()) {
             throw new TTransportException("No reply subject on connect.");
         }
 
         String[] subjects = new String(message.getData()).split(" ");
-        if (subjects.length != 3 ) {
+        if (subjects.length != 3) {
             throw new TTransportException("Invalid connect message.");
         }
 
@@ -203,8 +248,7 @@ public class TNatsServiceTransport extends TTransport {
 
     private Message handshakeRequest(byte[] handshakeBytes) throws TimeoutException, IOException {
         String inbox = newFrugalInbox();
-        try (SyncSubscription s = conn.subscribeSync(inbox, null))
-        {
+        try (SyncSubscription s = conn.subscribeSync(inbox, null)) {
             s.autoUnsubscribe(1);
             conn.publish(this.connectionSubject, inbox, handshakeBytes);
             return s.nextMessage(this.connectionTimeout, TimeUnit.MILLISECONDS);
@@ -216,27 +260,27 @@ public class TNatsServiceTransport extends TTransport {
         return TNatsServiceTransport.FRUGAL_PREFIX + conn.newInbox();
     }
 
-    private void startTimer() {
+    private synchronized void startTimer() {
         heartbeatTimer = new Timer();
         heartbeatTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 missedHeartbeat();
             }
-        }, heartbeatInterval);
+        }, heartbeatTimeoutPeriod());
     }
 
-    private void missedHeartbeat() {
+    private synchronized void missedHeartbeat() {
         int missed = missedHeartbeats.getAndIncrement();
         if (missed >= maxMissedHeartbeats) {
-            LOGGER.warning("missed " + missed + " heartbeats from peer, closing transport");
+            LOGGER.warn("missed " + missed + " heartbeats from peer, closing transport");
             close();
             return;
         }
         startTimer();
     }
 
-    private void receiveHeartbeat() {
+    private synchronized void receiveHeartbeat() {
         heartbeatTimer.cancel();
         missedHeartbeats.set(0);
         startTimer();
@@ -248,13 +292,17 @@ public class TNatsServiceTransport extends TTransport {
             return;
         }
         // Signal remote peer for a graceful disconnect.
-        conn.publish(writeTo, DISCONNECT, null);
+        try {
+            conn.publish(writeTo, DISCONNECT, null);
+        } catch (IOException e) {
+            LOGGER.warn("close: could not signal remote peer for disconnect: " + e.getMessage());
+        }
 
         if (heartbeatSub != null) {
             try {
                 heartbeatSub.unsubscribe();
             } catch (IOException e) {
-                LOGGER.warning("close: could not unsubscribe from heartbeat subscription. " + e.getMessage());
+                LOGGER.warn("close: could not unsubscribe from heartbeat subscription. " + e.getMessage());
             }
             heartbeatSub = null;
         }
@@ -266,7 +314,7 @@ public class TNatsServiceTransport extends TTransport {
         try {
             sub.unsubscribe();
         } catch (IOException e) {
-            LOGGER.warning("close: could not unsubscribe from inbox subscription. " + e.getMessage());
+            LOGGER.warn("close: could not unsubscribe from inbox subscription. " + e.getMessage());
         }
         sub = null;
 
@@ -274,15 +322,15 @@ public class TNatsServiceTransport extends TTransport {
         // because NATS asynchronously flushes in the background, so explicitly flushing prevents us from losing
         // anything buffered when we exit.
         try {
-            conn.flush();
+            conn.flush(1000);
         } catch (Exception e) {
-            LOGGER.warning("close: could not flush NATS connection. " + e.getMessage());
+            LOGGER.warn("close: could not flush NATS connection. " + e.getMessage());
         }
 
         try {
             writer.close();
         } catch (IOException e) {
-            LOGGER.warning("close: could not close write buffer. " + e.getMessage());
+            LOGGER.warn("close: could not close write buffer. " + e.getMessage());
         }
         isOpen = false;
     }
@@ -305,15 +353,12 @@ public class TNatsServiceTransport extends TTransport {
 
     @Override
     public void write(byte[] bytes, int off, int len) throws TTransportException {
-        if (!isOpen()) {
-            throw getClosedConditionException(conn, "write:");
-        }
         if (writeBuffer.remaining() < len) {
+            int size = len + TNatsServiceTransport.NATS_MAX_MESSAGE_SIZE - writeBuffer.remaining();
             writeBuffer.clear();
             throw new FMessageSizeException(
                     String.format("Message exceeds %d bytes, was %d bytes",
-                            TNatsServiceTransport.NATS_MAX_MESSAGE_SIZE,
-                            len + TNatsServiceTransport.NATS_MAX_MESSAGE_SIZE - writeBuffer.remaining()));
+                            TNatsServiceTransport.NATS_MAX_MESSAGE_SIZE, size));
         }
         writeBuffer.put(bytes, off, len);
     }
@@ -334,8 +379,21 @@ public class TNatsServiceTransport extends TTransport {
                     "Message exceeds %d bytes, was %d bytes",
                     TNatsServiceTransport.NATS_MAX_MESSAGE_SIZE, data.length));
         }
-        conn.publish(writeTo, data);
+        try {
+            conn.publish(writeTo, data);
+        } catch (IOException e) {
+            throw new TTransportException("flush: could not publish data: " + e.getMessage());
+        }
         writeBuffer.clear();
+    }
+
+    private synchronized long heartbeatTimeoutPeriod() {
+        // The server is expected to heartbeat at every heartbeatInterval. Add an additional grace period if
+        // maxMissedHeartbeats == 1 to avoid potential races.
+        if (maxMissedHeartbeats > 1) {
+            return heartbeatInterval;
+        }
+        return heartbeatInterval + heartbeatInterval / 4;
     }
 
     static TTransportException getClosedConditionException(Connection conn, String prefix) {
@@ -344,6 +402,6 @@ public class TNatsServiceTransport extends TTransport {
                     String.format("%s NATS client not connected (has status %s)", prefix, conn.getState().name()));
         }
         return new TTransportException(TTransportException.NOT_OPEN,
-                String.format("%s NATS FScopeTransport not open", prefix));
+                String.format("%s NATS TTransport not open", prefix));
     }
 }

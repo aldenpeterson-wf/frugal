@@ -1,11 +1,18 @@
 package globals
 
-import "time"
+import (
+	"fmt"
+	"time"
 
-const Version = "1.0.0"
+	"github.com/Workiva/frugal/compiler/parser"
+)
 
+// Version of the Frugal compiler.
+const Version = "1.16.0"
+
+// Global variables.
 var (
-	TopicDelimiter  string = "."
+	TopicDelimiter  = "."
 	Gen             string
 	Out             string
 	FileDir         string
@@ -14,8 +21,13 @@ var (
 	Verbose         bool
 	Now             = time.Now()
 	IntermediateIDL = []string{}
+	CompiledFiles   = make(map[string]*parser.Frugal)
+
+	// TODO: Remove once gen_with_frugal is the default.
+	GenWithFrugalWarn bool
 )
 
+// Reset global variables to initial state.
 func Reset() {
 	TopicDelimiter = "."
 	Gen = ""
@@ -26,4 +38,11 @@ func Reset() {
 	Verbose = false
 	Now = time.Now()
 	IntermediateIDL = []string{}
+	CompiledFiles = make(map[string]*parser.Frugal)
+	GenWithFrugalWarn = false
+}
+
+// PrintWarning prints the given message to stdout in yellow font.
+func PrintWarning(msg string) {
+	fmt.Println("\x1b[33m" + msg + "\x1b[0m")
 }
