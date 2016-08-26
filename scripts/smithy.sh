@@ -5,10 +5,16 @@ set -o pipefail
 # Set -e so that we fail if an error is hit.
 set -e
 
+env
+exit 1
+
+
 # Get godep
 which godep > /dev/null || {
     go get github.com/tools/godep
 }
+
+
 
 ROOT=$PWD
 CODECOV_TOKEN='bQ4MgjJ0G2Y73v8JNX6L7yMK9679nbYB'
