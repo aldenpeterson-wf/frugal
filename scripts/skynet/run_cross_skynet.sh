@@ -43,16 +43,16 @@ godep go build -o test/integration/go/bin/testserver test/integration/go/src/bin
 
 # Python Dependencies
 cd ${FRUGAL_HOME}/lib/python
-pip install -e ".[tornado]"
-pip install -r requirements_dev_tornado.txt
+pip install -q -e ".[tornado]"
+pip install -q -r requirements_dev_tornado.txt
 
 # Dart Dependencies
 cd $FRUGAL_HOME/test/integration/dart/test_client
-pub get
+pub upgrade
 
 # Try pub get and ignore failures - it will fail on any release
 cd $FRUGAL_HOME/test/integration/dart/gen-dart/frugal_test
-if pub get ; then
+if pub upgrade ; then
     echo 'pub get returned no error'
 else
     echo 'Pub get returned an error we ignored'
