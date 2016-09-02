@@ -59,7 +59,7 @@ func StartServer(
 			if err := publisher.PublishEventCreated(ctx, fmt.Sprintf("%d-response", port), event); err != nil {
 				panic(err)
 			}
-			time.Sleep(time.Millisecond * 500)
+			time.Sleep(time.Millisecond * 750)
 			pubSubResponseSent <- true
 		})
 		if err != nil {
