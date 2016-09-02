@@ -28,7 +28,7 @@ func main() {
 		pubSubResponseSent)
 
 	// This is somewhat arbitrary, but it's a reasonable amount of time to spin up a client when testing by hand
-	timeout := time.After(time.Second *10)
+	timeout := time.After(time.Second * 15)
 
 	select {
 	case <-serverMiddlewareCalled:
