@@ -1,10 +1,12 @@
 from __future__ import print_function
 
-import argparse
 import logging
 import sys
 
+import argparse
+
 sys.path.append('gen_py_tornado')
+sys.path.append('..')
 
 from frugal.context import FContext
 from frugal.protocol import FProtocolFactory
@@ -29,13 +31,15 @@ from thrift.protocol import TBinaryProtocol, TCompactProtocol, TJSONProtocol
 from thrift.transport.TTransport import TTransportException
 from tornado import ioloop, gen
 
+from common.utils import check_for_failure
+
 
 response_received = False
 
 
 @gen.coroutine
 def main():
-    parser = argparse.ArgumentParser(description="Run a python client")
+    parser = argparse.ArgumentParser(description="Run a python tornado client")
     parser.add_argument('--port', dest='port', default=9090)
     parser.add_argument('--protocol', dest='protocol_type', default="binary", choices="binary, compact, json")
     parser.add_argument('--transport', dest='transport_type', default="stateless", choices="stateless, stateful, stateless-stateful, http")
@@ -142,7 +146,7 @@ def test_pub_sub(nats_client, protocol_factory, port):
 # test_rpc makes RPC calls with each type defined in FrugalTest.frugal
 @gen.coroutine
 def test_rpc(client, ctx):
-    return_code = 0
+    test_failed = False
 
     # RPC with no type
     yield client.testVoid(ctx)
@@ -150,51 +154,38 @@ def test_rpc(client, ctx):
     # RPC with string
     thing = "thing"
     result = yield client.testString(ctx, "thing")
-    if result != thing:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, thing) or test_failed
 
     # RPC with boolean
     boolean = True
     result = yield client.testBool(ctx, boolean)
-    if result != boolean:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, boolean) or test_failed
 
     # RPC with byte
     byte = 42
     result = yield client.testByte(ctx, byte)
-    if result != byte:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, byte) or test_failed
 
     # RPC with i32
     i32 = 4242
     result = yield client.testI32(ctx, i32)
-    if result != i32:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, i32) or test_failed
 
     # RPC with i64
     i64 = 424242
     result = yield client.testI64(ctx, i64)
-    if result != i64:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, i64) or test_failed
 
     # RPC with double
     double = 42.42
     result = yield client.testDouble(ctx, double)
-    if result != double:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, double) or test_failed
+
 
     # RPC with binary
     binary = "0b101010"
     result = yield client.testBinary(ctx, binary)
-    if result != binary:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, binary) or test_failed
 
     # # RPC with Xtruct
     struct = Xtruct()
@@ -204,9 +195,7 @@ def test_rpc(client, ctx):
     struct.i64_thing = i64
     print("testStruct({}) = ".format(struct), end="")
     result = yield client.testStruct(ctx, struct)
-    if result != struct:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, struct) or test_failed
 
     # RPC with Xtruct2
     struct2 = Xtruct2()
@@ -214,60 +203,44 @@ def test_rpc(client, ctx):
     struct2.byte_thing = 0
     struct2.i32_thing = 0
     result = yield client.testNest(ctx, struct2)
-    if result != struct2:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, struct2) or test_failed
 
     # RPC with map
     dictionary = {1: 2, 3: 4, 5: 42}
     result = yield client.testMap(ctx, dictionary)
-    if result != dictionary:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, dictionary) or test_failed
 
     # RPC with map of strings
     string_map = {"a": "2", "b": "blah", "some": "thing"}
     result = yield client.testStringMap(ctx, string_map)
-    if result != string_map:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, string_map) or test_failed
 
     # RPC with set
     set = {1, 2, 2, 42}
     result = yield client.testSet(ctx, set)
-    if result != set:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, set) or test_failed
 
     # RPC with list
     list = [1, 2, 42]
     result = yield client.testList(ctx, list)
-    if result != list:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, list) or test_failed
 
     # RPC with enum
     enum = Numberz.TWO
     result = yield client.testEnum(ctx, enum)
-    if result != enum:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, enum) or test_failed
 
     # RPC with typeDef
     type_def = 42
-    result = yield client.testTypedef(ctx,type_def)
-    if result != type_def:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    result = yield client.testTypedef(ctx, type_def)
+    test_failed = check_for_failure(result, type_def) or test_failed
 
     # # RPC with map of maps
     d = {4: 4, 3: 3, 2: 2, 1: 1}
     e = {-4: -4, -3: -3, -2: -2, -1: -1}
     mapmap = {-4: e, 4: d}
     result = yield client.testMapMap(ctx, 42)
-    if result != mapmap:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, mapmap) or test_failed
 
     # RPC with Insanity (xtruct of xtructs)
     truck1 = Xtruct("Goodbye4", 4, 4, 4)
@@ -285,9 +258,7 @@ def test_rpc(client, ctx):
                          xtructs=[Xtruct(string_thing='Goodbye4', byte_thing=4, i32_thing=4, i64_thing=4),
                                   Xtruct(string_thing='Hello2', byte_thing=2, i32_thing=2, i64_thing=2)],
                          userMap={8: 8, 5: 5})}, 2: {}}
-    if result != expected_result:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, expected_result) or test_failed
 
     # RPC with Multi type
     multi = Xtruct()
@@ -296,9 +267,8 @@ def test_rpc(client, ctx):
     multi.i32_thing = 4242
     multi.i64_thing = 424242
     result = yield client.testMulti(ctx, 42, 4242, 424242, {1: "blah", 2: "thing"}, Numberz.EIGHT, 24)
-    if result != multi:
-        print("\nUnexpected result ", end="")
-        return_code = 1
+    test_failed = check_for_failure(result, multi) or test_failed
+
 
     # RPC with Exception
     message = "Xception"
@@ -307,21 +277,21 @@ def test_rpc(client, ctx):
     except Xception as exception:
         if exception.errorCode != 1001 or exception.message != "Xception":
             print("\nUnexpected result {}".format(result), end="")
-            return_code = 1
+            test_failed = True
 
     # RPC with MultiException
     message = "Xception2"
     try:
         result = yield client.testMultiException(ctx, message, "ignoreme")
         print("\nUnexpected result {}".format(result), end="")
-        return_code = 1
+        test_failed = True
     except Xception as exception:
         print("\nUnexpected result {}".format(exception), end="")
-        return_code = 1
+        test_failed = True
     except Xception2 as exception:
         if exception.errorCode != 2002 or exception.struct_thing.string_thing != "This is an Xception2":
             print("\nUnexpected result {}".format(exception), end="")
-            return_code = 1
+            test_failed = True
 
     # oneWay RPC call (no response)
     seconds = 1
@@ -329,9 +299,9 @@ def test_rpc(client, ctx):
         client.testOneway(ctx, seconds)
     except Exception as e:
         print("Unexpected error in testOneway() call: {}".format(e))
-        return_code = 1
+        test_failed = True
 
-    if return_code:
+    if test_failed:
         exit(1)
 
 
