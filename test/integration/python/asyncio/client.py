@@ -3,9 +3,10 @@ import sys
 import argparse
 
 sys.path.append('gen_py_asyncio')
+sys.path.append('gen_py_asyncio/frugal_test')   # todo: understand why this isn't working without this, shouldn't the package do this?
 sys.path.append('..')
 
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TBinaryProtocol, TCompactProtocol, TJSONProtocol
 from thrift.transport.TTransport import TTransportException
 
 from frugal.context import FContext
@@ -18,14 +19,14 @@ from frugal.aio.transport import (
 
 from nats.aio.client import Client as NatsClient
 
-from frugal_test import ttypes, Xception, Insanity, Xception2, Event
 from frugal_test.f_Events_publisher import EventsPublisher
+from frugal_test import ttypes, Xception, Insanity, Xception2, Event
 from frugal_test.f_Events_subscriber import EventsSubscriber
 from frugal_test.f_FrugalTest import Xtruct, Xtruct2, Numberz
 from frugal_test.f_FrugalTest import Client as FrugalTestClient
 
 
-from common.utils import check_for_failure
+from common.utils import check_for_failure, get_protocol_factory
 
 async def main():
 
@@ -34,23 +35,23 @@ async def main():
     parser.add_argument('--protocol', dest='protocol_type', default="binary", choices="binary, compact, json")
     parser.add_argument('--transport', dest='transport_type', default="stateless", choices="stateless, stateful, stateless-stateful, http")
 
-    prot_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
+    args = parser.parse_args()
+
+    protocol_factory = get_protocol_factory(args.protocol_type)
+
+
+
     nats_client = NatsClient()
-    options = {
-        "verbose": True,
-        "servers": ["nats://127.0.0.1:4222"]
-    }
+    await nats_client.connect(****get_nats_options())
 
-    await nats_client.connect(**options)
-
-    nats_transport = FNatsTransport(nats_client, "foo")
+    nats_transport = FNatsTransport(nats_client, args.port)
     try:
         await nats_transport.open()
     except TTransportException as ex:
         root.error(ex)
         return
 
-    client = FrugalTestClient(nats_transport, prot_factory)
+    client = FrugalTestClient(nats_transport, protocol_factory)
     ctx = FContext("test")
 
 

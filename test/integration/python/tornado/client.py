@@ -27,11 +27,10 @@ from frugal_test.f_FrugalTest import Xtruct, Xtruct2, Numberz
 from frugal_test.f_FrugalTest import Client as FrugalTestClient
 
 from nats.io.client import Client as NATS
-from thrift.protocol import TBinaryProtocol, TCompactProtocol, TJSONProtocol
 from thrift.transport.TTransport import TTransportException
 from tornado import ioloop, gen
 
-from common.utils import check_for_failure
+from common.utils import *
 
 
 response_received = False
@@ -46,24 +45,12 @@ def main():
 
     args = parser.parse_args()
 
-    if args.protocol_type == "binary":
-        protocol_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
-    elif args.protocol_type == "compact":
-        protocol_factory = FProtocolFactory(TCompactProtocol.TCompactProtocolFactory())
-    elif args.protocol_type == "json":
-        protocol_factory = FProtocolFactory(TJSONProtocol.TJSONProtocolFactory())
-    else:
-        logging.error("Unknown protocol type: %s", args.protocol_type)
-        sys.exit(1)
+    protocol_factory = get_protocol_factory(args.protocol_type)
 
     nats_client = NATS()
-    options = {
-        "verbose": True,
-        "servers": ["nats://127.0.0.1:4222"]
-    }
 
     logging.debug("Connecting to NATS")
-    yield nats_client.connect(**options)
+    yield nats_client.connect(**get_nats_options())
 
     transport = None
 
