@@ -59,7 +59,8 @@ func StartServer(
 			if err := publisher.PublishEventCreated(ctx, fmt.Sprintf("%d-response", port), event); err != nil {
 				panic(err)
 			}
-			time.Sleep(time.Millisecond * 750)
+			// Explicitly flushing the publish to ensure it is sent before the main thread exits
+			conn.Flush()
 			pubSubResponseSent <- true
 		})
 		if err != nil {
@@ -108,7 +109,7 @@ func StartServer(
 	}
 	fmt.Println("Starting %v server...", transport)
 	if err := server.Serve(); err != nil {
-		log.Fatal("Failed to start server:", err.Error())
+		log.Fatal("Failed to start server:", err)
 	}
 }
 
