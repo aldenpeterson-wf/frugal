@@ -316,41 +316,31 @@ public class TestClient {
             /**
              * ENUM TEST
              */
-            System.out.print("testEnum(ONE)");
             Numberz ret = testClient.testEnum(context, Numberz.ONE);
-            System.out.print(" = " + ret + "\n");
             if (ret != Numberz.ONE) {
                 returnCode |= 1;
                 System.out.println("*** FAILURE ***\n");
             }
 
-            System.out.print("testEnum(TWO)");
             ret = testClient.testEnum(context, Numberz.TWO);
-            System.out.print(" = " + ret + "\n");
             if (ret != Numberz.TWO) {
                 returnCode |= 1;
                 System.out.println("*** FAILURE ***\n");
             }
 
-            System.out.print("testEnum(THREE)");
             ret = testClient.testEnum(context, Numberz.THREE);
-            System.out.print(" = " + ret + "\n");
             if (ret != Numberz.THREE) {
                 returnCode |= 1;
                 System.out.println("*** FAILURE ***\n");
             }
 
-            System.out.print("testEnum(FIVE)");
             ret = testClient.testEnum(context, Numberz.FIVE);
-            System.out.print(" = " + ret + "\n");
             if (ret != Numberz.FIVE) {
                 returnCode |= 1;
                 System.out.println("*** FAILURE ***\n");
             }
 
-            System.out.print("testEnum(EIGHT)");
             ret = testClient.testEnum(context, Numberz.EIGHT);
-            System.out.print(" = " + ret + "\n");
             if (ret != Numberz.EIGHT) {
                 returnCode |= 1;
                 System.out.println("*** FAILURE ***\n");
@@ -359,9 +349,7 @@ public class TestClient {
             /**
              * TYPEDEF TEST
              */
-            System.out.print("testTypedef(309858235082523)");
             long uid = testClient.testTypedef(context, 309858235082523L);
-            System.out.print(" = " + uid + "\n");
             if (uid != 309858235082523L) {
                 returnCode |= 1;
                 System.out.println("*** FAILURE ***\n");
@@ -370,19 +358,8 @@ public class TestClient {
             /**
              * NESTED MAP TEST
              */
-            System.out.print("testMapMap(1)");
             Map<Integer, Map<Integer, Integer>> mm =
                     testClient.testMapMap(context, 1);
-            System.out.print(" = {");
-            for (int key : mm.keySet()) {
-                System.out.print(key + " => {");
-                Map<Integer, Integer> m2 = mm.get(key);
-                for (int k2 : m2.keySet()) {
-                    System.out.print(k2 + " => " + m2.get(k2) + ", ");
-                }
-                System.out.print("}, ");
-            }
-            System.out.print("}\n");
             if (mm.size() != 2 || !mm.containsKey(4) || !mm.containsKey(-4)) {
                 returnCode |= 1;
                 System.out.println("*** FAILURE ***\n");
@@ -421,40 +398,8 @@ public class TestClient {
                 insane.xtructs.add(goodbye);
                 insane.xtructs.add(hello);
 
-                System.out.print("testInsanity()");
                 Map<Long, Map<Numberz, Insanity>> whoa =
                         testClient.testInsanity(context, insane);
-                System.out.print(" = {");
-                for (long key : whoa.keySet()) {
-                    Map<Numberz, Insanity> val = whoa.get(key);
-                    System.out.print(key + " => {");
-
-                    for (Numberz k2 : val.keySet()) {
-                        Insanity v2 = val.get(k2);
-                        System.out.print(k2 + " => {");
-                        Map<Numberz, Long> userMap = v2.userMap;
-                        System.out.print("{");
-                        if (userMap != null) {
-                            for (Numberz k3 : userMap.keySet()) {
-                                System.out.print(k3 + " => " + userMap.get(k3) + ", ");
-                            }
-                        }
-                        System.out.print("}, ");
-
-                        List<Xtruct> xtructs = v2.xtructs;
-                        System.out.print("{");
-                        if (xtructs != null) {
-                            for (Xtruct x : xtructs) {
-                                System.out.print("{" + "\"" + x.string_thing + "\", " + x.byte_thing + ", " + x.i32_thing + ", " + x.i64_thing + "}, ");
-                            }
-                        }
-                        System.out.print("}");
-
-                        System.out.print("}, ");
-                    }
-                    System.out.print("}, ");
-                }
-                System.out.print("}\n");
                 if (whoa.size() == 2 && whoa.containsKey(1L) && whoa.containsKey(2L)) {
                     Map<Numberz, Insanity> first_map = whoa.get(1L);
                     Map<Numberz, Insanity> second_map = whoa.get(2L);
@@ -482,7 +427,6 @@ public class TestClient {
              * EXECPTION TEST
              */
             try {
-                System.out.print("testException(\"Xception\") =>");
                 testClient.testException(context, "Xception");
                 System.out.print("  void\n*** FAILURE ***\n");
                 returnCode |= 1;
@@ -491,9 +435,7 @@ public class TestClient {
             }
 
             try {
-                System.out.print("testException(\"success\") =>");
                 testClient.testException(context, "success");
-                System.out.print("  void\n");
             } catch (Exception e) {
                 System.out.printf("  exception\n*** FAILURE ***\n");
                 returnCode |= 1;
@@ -505,7 +447,6 @@ public class TestClient {
              */
 
             try {
-                System.out.printf("testMultiException(\"Xception\", \"test 1\") =>");
                 testClient.testMultiException(context, "Xception", "test 1");
                 System.out.print("  result\n*** FAILURE ***\n");
                 returnCode |= 1;
@@ -514,7 +455,6 @@ public class TestClient {
             }
 
             try {
-                System.out.printf("testMultiException(\"Xception2\", \"test 2\") =>");
                 testClient.testMultiException(context, "Xception2", "test 2");
                 System.out.print("  result\n*** FAILURE ***\n");
                 returnCode |= 1;
@@ -523,10 +463,7 @@ public class TestClient {
             }
 
             try {
-                System.out.print("testMultiException(\"success\", \"test 3\") =>");
-                Xtruct result;
-                result = testClient.testMultiException(context, "success", "test 3");
-                System.out.printf("  {{\"%s\"}}\n", result.string_thing);
+                testClient.testMultiException(context, "success", "test 3");
             } catch (Exception e) {
                 System.out.printf("  exception\n*** FAILURE ***\n");
                 returnCode |= 1;
@@ -535,10 +472,8 @@ public class TestClient {
             /**
              * ONEWAY TEST
              */
-            System.out.print("testOneWay(1)...");
             try {
                 testClient.testOneway(context, 1);
-                System.out.print(" - no error returned\n");
             } catch (Exception e) {
                 System.out.print("  exception\n*** FAILURE ***\n");
                 System.out.println(e);
@@ -596,9 +531,13 @@ public class TestClient {
                 public Object invoke(Method method, Object receiver, Object[] args) throws Throwable {
                     Object[] subArgs = Arrays.copyOfRange(args, 1, args.length);
                     System.out.printf("%s(%s) = ", method.getName(), Arrays.toString(subArgs));
-                    Object ret = method.invoke(receiver, args);
-                    System.out.printf("%s \n", ret);
-                    return ret;
+                    try {
+                        Object ret = method.invoke(receiver, args);
+                        System.out.printf("%s \n", ret);
+                        return ret;
+                    } catch (Exception e) {
+                        throw e;
+                    }
                 }
             };
         }

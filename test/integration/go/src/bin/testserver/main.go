@@ -43,4 +43,12 @@ func main() {
 	case <-timeout:
 		log.Fatal("Pub/Sub response not sent within 10 seconds")
 	}
+
+	// The cross runner will fail if the server dies
+	// Killing the main go routine is handled by the cross runner
+	blockForever()
+}
+
+func blockForever() {
+	select{ }
 }
