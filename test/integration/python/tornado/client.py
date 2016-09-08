@@ -9,7 +9,6 @@ sys.path.append('gen_py_tornado')
 sys.path.append('..')
 
 from frugal.context import FContext
-from frugal.protocol import FProtocolFactory
 from frugal.provider import FScopeProvider
 
 from frugal.tornado.transport import (
@@ -31,6 +30,7 @@ from thrift.transport.TTransport import TTransportException
 from tornado import ioloop, gen
 
 from common.utils import *
+from common.test_definitions import rpc_test_definitions, exception_rpc_test_definitions
 
 
 response_received = False
@@ -70,6 +70,7 @@ def main():
         transport = FHttpTransport("http://localhost:" + str(args.port))
     else:
         print("Unknown transport type: {}".format(args.transport_type))
+        sys.exit(1)
 
     try:
         yield transport.open()
@@ -135,6 +136,18 @@ def test_pub_sub(nats_client, protocol_factory, port):
 def test_rpc(client, ctx):
     test_failed = False
 
+
+    for rpc, vals in rpc_test_definitions().items():
+        method = getattr(client, rpc)
+        args = vals['args']
+        expected_result = vals['expected_result']
+        if args:
+            result = yield method(ctx, *args)
+        else:
+            result = yield method(ctx)
+
+        test_failed = check_for_failure(result, expected_result) or test_failed
+
     # RPC with no type
     yield client.testVoid(ctx)
 
@@ -180,7 +193,6 @@ def test_rpc(client, ctx):
     struct.byte_thing = byte
     struct.i32_thing = i32
     struct.i64_thing = i64
-    print("testStruct({}) = ".format(struct), end="")
     result = yield client.testStruct(ctx, struct)
     test_failed = check_for_failure(result, struct) or test_failed
 

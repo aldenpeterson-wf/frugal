@@ -143,7 +143,8 @@
       ]
     },
     "transports": [
-      "stateless"
+      "stateless",
+      "http"
     ],
     "sockets": [
       "ip"
