@@ -6,6 +6,7 @@
 
 
 
+import inspect
 import sys
 import traceback
 
@@ -108,7 +109,9 @@ class FooSubscriber(object):
             req.read(iprot)
             iprot.readMessageEnd()
             try:
-                method([ctx, req])
+                ret = method([ctx, req])
+                if inspect.iscoroutine(ret):
+                    await ret
             except:
                 traceback.print_exc()
                 sys.exit(1)
