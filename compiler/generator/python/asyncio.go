@@ -52,7 +52,8 @@ func (a *AsyncIOGenerator) GenerateServiceImports(file *os.File, s *parser.Servi
 
 // GenerateScopeImports generates necessary imports for the given scope.
 func (a *AsyncIOGenerator) GenerateScopeImports(file *os.File, s *parser.Scope) error {
-	imports := "import sys\n"
+	imports := "import inspect\n"
+	imports += "import sys\n"
 	imports += "import traceback\n\n"
 
 	imports += "from thrift.Thrift import TApplicationException\n"
@@ -388,7 +389,9 @@ func (a *AsyncIOGenerator) generateSubscribeMethod(scope *parser.Scope, op *pars
 	method += tabtabtab + "req.read(iprot)\n"
 	method += tabtabtab + "iprot.readMessageEnd()\n"
 	method += tabtabtab + "try:\n"
-	method += tabtabtabtab + "method([ctx, req])\n"
+	method += tabtabtabtab + "ret = method([ctx, req])\n"
+	method += tabtabtabtab + "if inspect.iscoroutine(ret):\n"
+	method += tabtabtabtabtab + "await ret\n"
 	method += tabtabtab + "except:\n"
 	method += tabtabtabtab + "traceback.print_exc()\n"
 	method += tabtabtabtab + "sys.exit(1)\n\n"
