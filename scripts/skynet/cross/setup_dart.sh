@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -e
 
 export FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal
 
@@ -11,9 +12,9 @@ pub upgrade
 # Try pub get and ignore failures - it will fail on any release
 cd $FRUGAL_HOME/test/integration/dart/gen-dart/frugal_test
 if pub upgrade ; then
-    echo 'pub get returned no error'
+    echo 'pub upgrade returned no error'
 else
-    echo 'Pub get returned an error we ignored'
+    echo 'Pub upgrade returned an error we ignored'
 fi
 
 # get frugal version to use with manually placing package in pub-cache
