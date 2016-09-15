@@ -154,8 +154,8 @@ class Client(Iface):
         future = asyncio.Future()
         timed_future = asyncio.wait_for(future, timeout)
         await self._transport.register(ctx, self._recv_bleh(ctx, future))
-        await self._send_bleh(ctx, one, Two, custom_ints)
         try:
+            await self._send_bleh(ctx, one, Two, custom_ints)
             result = await timed_future
         finally:
             await self._transport.unregister(ctx)
