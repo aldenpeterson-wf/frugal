@@ -67,6 +67,7 @@ async def main():
     await publisher.open()
 
     async def response_handler(context, event):
+        print('response handler called')
         response_event = Event(Message="Sending Response")
         response_context = FContext("Call")
         global publisher
@@ -74,8 +75,8 @@ async def main():
         await publisher.publish_EventCreated(response_context, "{}-response".format(port), response_event)
 
     subscriber = EventsSubscriber(provider)
-
     await subscriber.subscribe_EventCreated("{}-call".format(args.port), response_handler)
+
 
     if args.transport_type in ["stateless", "stateless-stateful"]:
         server = FNatsServer(nats_client,
@@ -90,15 +91,23 @@ async def main():
 
         print("Starting {} server...".format(args.transport_type))
         await server.serve()
+
     elif args.transport_type == "http":
+        print('starting http transport')
         store_handler = new_http_handler(processor, protocol_factory)
-        app = web.Application(loop=asyncio.new_event_loop())
-        app.router.add_route("*", "/frugal", store_handler)
-        await web.run_app(app, port=port)
+        # server_io_loop = asyncio.new_event_loop()
+        app = web.Application(loop=asyncio.get_event_loop())
+        app.router.add_route("*", "/", store_handler)
+        srv = await asyncio.get_event_loop().create_server(
+            app.make_handler(), '0.0.0.0', port)
+
+        # web.run_app(app, port=port)
 
     else:
         logging.error("Unknown transport type: %s", args.transport_type)
         sys.exit(1)
+
+    print ('main exiting')
 
 
 def healthcheck(port):
@@ -111,3 +120,4 @@ if __name__ == '__main__':
     io_loop = asyncio.get_event_loop()
     asyncio.ensure_future(main())
     io_loop.run_forever()
+    print ('exiting')

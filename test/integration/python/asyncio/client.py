@@ -59,6 +59,11 @@ async def main():
     await nats_client.close()
 
 
+
+    # private static final org.apache.thrift.protocol.TField THING_FIELD_DESC = new org.apache.thrift.protocol.TField("thing", org.apache.thrift.protocol.TType.STRING, (short)1);
+    # line of FrugalTest.java 4851
+    # private static final org.apache.thrift.protocol.TField THING_FIELD_DESC = new org.apache.thrift.protocol.TField("thing", org.apache.thrift.protocol.TType.STRING, (short)1);
+
 async def test_rpc(client, ctx):
     test_failed = False
 

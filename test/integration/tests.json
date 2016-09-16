@@ -1,5 +1,33 @@
 [
+  {
+    "name": "java",
 
+    "client": {
+      "timeout": 20,
+      "command": [
+        "/usr/bin/java",
+        "-Djava.security.egd=file:///dev/urandom",
+        "-cp",
+        "cross.jar",
+        "com.workiva.TestClient"
+      ],
+      "transports": [
+        "stateless",
+        "stateful",
+        "stateless-stateful",
+        "http"
+      ]
+    },
+    "sockets": [
+      "ip"
+    ],
+    "protocols": [
+      "binary",
+      "compact",
+      "json"
+    ],
+    "workdir": "java/frugal-integration-test"
+  },
   {
     "name": "py:asyncio",
     "client": {
@@ -11,7 +39,7 @@
       ]
     },
     "server": {
-      "timeout": 2,
+      "timeout": 7,
       "command": [
         "python3.5",
         "-u",
@@ -19,7 +47,9 @@
       ]
     },
     "transports": [
-      "http"
+      "stateless",
+      "http",
+      "stateless-stateful"
     ],
     "sockets": [
       "ip"
