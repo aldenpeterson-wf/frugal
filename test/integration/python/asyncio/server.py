@@ -70,7 +70,6 @@ async def main():
     subscriber = EventsSubscriber(provider)
     await subscriber.subscribe_EventCreated("{}-call".format(args.port), response_handler)
 
-
     if args.transport_type in ["stateless", "stateless-stateful"]:
         server = FNatsServer(nats_client,
                              subject,
