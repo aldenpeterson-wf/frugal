@@ -98,6 +98,7 @@ func TestNatsServiceTTransportOpenDisconnectRead(t *testing.T) {
 	tr, server, conn := newNatsServiceClientAndServer(t)
 	defer server.Stop()
 	defer conn.Close()
+
 	assert.Nil(t, tr.Open())
 	defer tr.Close()
 	assert.True(t, tr.IsOpen())
@@ -281,7 +282,7 @@ func newNatsServiceClientAndServer(t *testing.T) (*natsServiceTTransport, *FNats
 	go func() {
 		assert.Nil(t, server.Serve())
 	}()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(15 * time.Millisecond)
 	tr := NewNatsServiceTTransport(conn, "foo", 10*time.Millisecond, 3)
 	return tr.(*natsServiceTTransport), server.(*FNatsServer), conn
 }
