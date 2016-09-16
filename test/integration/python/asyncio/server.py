@@ -12,8 +12,6 @@ sys.path.append('gen_py_asyncio')
 
 
 from frugal.context import FContext
-from frugal.processor import FProcessorFactory
-from frugal.protocol import FProtocolFactory
 from frugal.provider import FScopeProvider
 
 from frugal_test.f_Events_publisher import EventsPublisher
@@ -22,21 +20,17 @@ from frugal_test.f_FrugalTest import Processor
 from frugal_test.ttypes import Event
 
 from frugal.aio.server import FNatsServer
-from nats.aio.client import Client as NatsClient
-from frugal.protocol import FProtocolFactory
 from frugal.aio.server.http_handler import new_http_handler
 from frugal.aio.transport.nats_scope_transport import FNatsScopeTransportFactory
-
 
 from common.FrugalTestHandler import FrugalTestHandler
 from common.utils import *
 
-
 from nats.aio.client import Client as NatsClient
+
 
 publisher = None
 port = 0
-
 
 
 async def main():
@@ -67,7 +61,6 @@ async def main():
     await publisher.open()
 
     async def response_handler(context, event):
-        print('response handler called')
         response_event = Event(Message="Sending Response")
         response_context = FContext("Call")
         global publisher
@@ -84,7 +77,6 @@ async def main():
                              processor,
                              protocol_factory)
         # start healthcheck so the test runner knows the server is running
-        # threading.start_new_thread(healthcheck, (port, ))
         threading.Thread(target=healthcheck,
             args=(port,)
         ).start()
@@ -93,21 +85,16 @@ async def main():
         await server.serve()
 
     elif args.transport_type == "http":
-        print('starting http transport')
+        print('starting http server')
         store_handler = new_http_handler(processor, protocol_factory)
-        # server_io_loop = asyncio.new_event_loop()
         app = web.Application(loop=asyncio.get_event_loop())
         app.router.add_route("*", "/", store_handler)
         srv = await asyncio.get_event_loop().create_server(
             app.make_handler(), '0.0.0.0', port)
 
-        # web.run_app(app, port=port)
-
     else:
         logging.error("Unknown transport type: %s", args.transport_type)
         sys.exit(1)
-
-    print ('main exiting')
 
 
 def healthcheck(port):
@@ -120,4 +107,3 @@ if __name__ == '__main__':
     io_loop = asyncio.get_event_loop()
     asyncio.ensure_future(main())
     io_loop.run_forever()
-    print ('exiting')
