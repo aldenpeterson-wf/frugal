@@ -16,4 +16,4 @@ cd $FRUGAL_HOME
 go run scripts/smithy/parallel_smithy.go
 
 # Report coverage
-../scripts/smithy/codecov.sh
+./$FRUGAL_HOME/scripts/smithy/codecov.sh
