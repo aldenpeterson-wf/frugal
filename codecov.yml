@@ -24,13 +24,13 @@ coverage:
   status:
     project:
       default: off
-      dart:
+      dart_library:
         enabled: yes
         flags: dart_library
-      java:
+      java_library:
         enabled: yes
         flags: java_library
-      go_lib:
+      go_library:
         enabled: yes
         flags: go_library
       python_two:
