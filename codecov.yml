@@ -10,6 +10,8 @@ coverage:
 
   status:
     project:
+      default: off
+
       dartlibrarytest:
         flags: dartlibrarytest
         target: 60%
