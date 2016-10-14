@@ -10,15 +10,15 @@ coverage:
 
   status:
     project:
-      default: off
-
       dartlibrarytest:
         flags: dartlibrarytest
         target: 60%
       java_library:
         flags: java_library
+        target: 60%
       golibrary:
         flags: golibrary
+        target: 60%
 
     patch: no
 
