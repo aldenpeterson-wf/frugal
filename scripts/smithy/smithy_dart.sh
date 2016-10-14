@@ -22,7 +22,6 @@ pub run dart_dev test
 # Run coverage
 pub run dart_dev coverage --no-html
 
-./tool/codecov.sh
 pub run dart_dev format --check
 pub run dart_dev analyze
 
