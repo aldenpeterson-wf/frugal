@@ -1,5 +1,6 @@
 #!/bin/bash
 
+echo "Running codecov"
 if [ -z "$GIT_BRANCH" ]
 then
 	echo "GIT_BRANCH environment variable not set, skipping codecov push"
