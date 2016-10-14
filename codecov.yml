@@ -40,9 +40,9 @@ comment:
 #      java_library:
 #        enabled: yes
 #        flags: java_library
-#      go_library:
+#      golibrary:
 #        enabled: yes
-#        flags: go_library
+#        flags: golibrary
 ##      python_two:
 ##        enabled: yes
 ##        flags: python_two
