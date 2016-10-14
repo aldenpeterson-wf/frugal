@@ -1,35 +1,55 @@
 #this yaml inherits bot from team, do not add bot
-
+# codecov inherits bot from team, do not add bot to this yml
 codecov:
   url: "https://codecov.workiva.net"
   branch: master
 
 coverage:
-
-  precision: 2
+  precision: 3
   round: down
-  range: "70...100"
+  range: "60...90"
 
   status:
     project:
-      dart_library:
-        enabled: yes
-        flags: dart_library
-      java_library:
-        enabled: yes
-        flags: java_library
-      go_library:
-        enabled: yes
-        flags: go_library
-#      python_two:
-#        enabled: yes
-#        flags: python_two
+      default:
+        target: 60%
     patch: no
-
 
 comment:
   layout: "header, diff, changes, sunburst, uncovered, tree"
   behavior: default
+  
+#
+#codecov:
+#  url: "https://codecov.workiva.net"
+#  branch: master
+#
+#coverage:
+#
+#  precision: 2
+#  round: down
+#  range: "70...100"
+#
+#  status:
+#    project:
+#      dart_library:
+#        enabled: yes
+#        flags: dart_library
+#      java_library:
+#        enabled: yes
+#        flags: java_library
+#      go_library:
+#        enabled: yes
+#        flags: go_library
+##      python_two:
+##        enabled: yes
+##        flags: python_two
+#    patch: no
+#
+#
+#comment:
+#  layout: "header, diff, changes, sunburst, uncovered, tree"
+#  behavior: default
 #  flags:
 #    - dart_library
 #    - go_library
