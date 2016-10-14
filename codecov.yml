@@ -14,10 +14,8 @@ coverage:
         flags: dartlibrarytest
         target: 60%
       java_library:
-        enabled: yes
         flags: java_library
       golibrary:
-        enabled: yes
         flags: golibrary
 
     patch: no

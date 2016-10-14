@@ -13,7 +13,7 @@ else
 
 	# Go library
     bash <(curl -s https://codecov.workiva.net/bash) -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f $FRUGAL_HOME/gocoverage.txt -F golibrary
-#
+
 	# Java library
     bash <(curl -s https://codecov.workiva.net/bash) -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f $FRUGAL_HOME/lib/java/target/site/jacoco/jacoco.xml -F java_library
 #
