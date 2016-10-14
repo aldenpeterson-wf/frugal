@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Running codecov"
+echo "\nRunning codecov"
 if [ -z "$GIT_BRANCH" ]
 then
 	echo "GIT_BRANCH environment variable not set, skipping codecov push"
@@ -9,7 +9,7 @@ else
 
 
 	# Dart
-	bash <(curl -s https://codecov.workiva.net/bash) -v -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f "/smithy-builder/builds/Workiva/frugal/cache/GO/src/github.com/Workiva/frugal/lib/dart/coverage/coverage.lcov" -F dartlibrary
+	bash <(curl -s https://codecov.workiva.net/bash) -v -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f "/smithy-builder/builds/Workiva/frugal/cache/GO/src/github.com/Workiva/frugal/lib/dart/coverage/coverage.lcov" -F dartlibrarytest
 
 #	# Go library
 #    bash <(curl -s https://codecov.workiva.net/bash) -u https://codecov.workiva.net -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f $FRUGAL_HOME/gocoverage.txt -F golibrary

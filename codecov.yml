@@ -10,8 +10,8 @@ coverage:
 
   status:
     project:
-      dartlibrary:
-        flags: dartlibrary
+      dartlibrarytest:
+        flags: dartlibrarytest
         target: 60%
 
     patch: no
