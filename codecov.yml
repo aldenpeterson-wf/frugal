@@ -2,6 +2,7 @@
 
 codecov:
   url: "https://codecov.workiva.net"
+  branch: master
 
 coverage:
 
@@ -11,7 +12,6 @@ coverage:
 
   status:
     project:
-      default: off
       dart_library:
         enabled: yes
         flags: dart_library
@@ -21,19 +21,19 @@ coverage:
       go_library:
         enabled: yes
         flags: go_library
-      python_two:
-        enabled: yes
-        flags: python_two
+#      python_two:
+#        enabled: yes
+#        flags: python_two
     patch: no
 
 
 comment:
-  layout: header, diff, changes, sunburst, uncovered, tree
+  layout: "header, diff, changes, sunburst, uncovered, tree"
   behavior: default
-  flags:
-    - dart_library
-    - go_library
-    - java_library
+#  flags:
+#    - dart_library
+#    - go_library
+#    - java_library
 
 
   #  flags:
