@@ -11,14 +11,16 @@ coverage:
 
   status:
     project:
-      default:
-        target: 60%
+      default: off
+      dart_library:
+        flags: dart_library
+
     patch: no
 
 comment:
   layout: "header, diff, changes, sunburst, uncovered, tree"
   behavior: default
-  
+
 #
 #codecov:
 #  url: "https://codecov.workiva.net"
