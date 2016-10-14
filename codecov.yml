@@ -13,6 +13,7 @@ coverage:
     project:
       dartlibrary:
         flags: dartlibrary
+        target: 60%
 
     patch: no
 
