@@ -8,7 +8,7 @@ else
 
 
 	# Dart
-	bash <(curl -s https://codecov.workiva.net/bash) -u https://codecov.workiva.net -t $CODECOV_TOKEN -r $TRACKING_REMOTE -p $FRUGAL_HOME/lib/dart/ -F dartlibrary
+	bash <(curl -s https://codecov.workiva.net/bash) -u https://codecov.workiva.net -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f $FRUGAL_HOME/lib/dart/coverage/coverage.lcov -F dartlibrary
 
 #	# Go library
 #    bash <(curl -s https://codecov.workiva.net/bash) -u https://codecov.workiva.net -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f $FRUGAL_HOME/gocoverage.txt -F golibrary
