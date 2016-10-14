@@ -16,6 +16,12 @@ codecov:
 #        flags: api
 
 coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: null
+        branches: null
   precision: 2
   round: down
   range: "70...100"
