@@ -28,6 +28,11 @@ coverage:
         flags: dart_library
           paths:
             - lib/dart/lib/src
+      java:
+        target: auto
+        flags: java_library
+          paths:
+            - lib/java
       go_lib:
         target: auto
         flags: go_library
