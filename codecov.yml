@@ -15,9 +15,12 @@ coverage:
         target: 60%
       java_library:
         flags: java_library
-        target: 60%
+        target: 50%
       golibrary:
         flags: golibrary
+        target: 60%
+      python_three:
+        flags: python_three
         target: 60%
 
     patch: no
