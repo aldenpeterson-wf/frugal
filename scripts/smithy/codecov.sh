@@ -17,6 +17,6 @@ else
     bash <(curl -s https://codecov.workiva.net/bash) -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f $FRUGAL_HOME/lib/java/target/site/jacoco/jacoco.xml -F java_library
 
     # Python2
-    bash <(curl -s https://codecov.workiva.net/bash) -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f $FRUGAL_HOME/lib/python/coverage_py2.xml -F python_two
+    bash <(curl -s https://codecov.workiva.net/bash) -t $CODECOV_TOKEN -r $TRACKING_REMOTE -f $FRUGAL_HOME/lib/python/coverage_py3.xml -F python_three
 
 fi
