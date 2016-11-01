@@ -31,9 +31,11 @@ coverage:
 comment:
   layout: "header, diff, changes, sunburst, uncovered, tree"
   behavior: default
-  flags:
-    - "dartlibrarytest"
-    - "java_library"
-    - "golibrary"
-    - "python_two"
-    - "python_three"
+  flags: "dartlibrarytest, java_library, golibrary, python_two, python_three"
+
+#  flags:
+#    - "dartlibrarytest"
+#    - "java_library"
+#    - "golibrary"
+#    - "python_two"
+#    - "python_three"
