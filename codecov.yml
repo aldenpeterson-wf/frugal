@@ -22,6 +22,9 @@ coverage:
       python_three:
         flags: python_three
         target: 60%
+      python_two:
+        flags: python_two
+        target: 60%
 
     patch: no
 
