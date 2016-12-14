@@ -14,13 +14,13 @@ from frugal.exceptions import FMessageSizeException
 from frugal.exceptions import FRateLimitException
 from frugal.exceptions import FTimeoutException
 from frugal.middleware import Method
-from frugal.tornado.processor import FBaseProcessor
-from frugal.tornado.processor import FProcessorFunction
+from frugal.gevent.processor import FBaseProcessor
+from frugal.gevent.processor import FProcessorFunction
 from frugal.transport import TMemoryOutputBuffer
 from thrift.Thrift import TApplicationException
 from thrift.Thrift import TMessageType
-from tornado import gen
-from tornado.concurrent import Future
+# from tornado import gen
+# from tornado.concurrent import Future
 
 from .ttypes import *
 
@@ -68,8 +68,8 @@ class Client(Iface):
         self._oprot = protocol_factory.get_protocol(transport)
         self._write_lock = Lock()
         self._methods = {
-            'buyAlbum': Method(self._buyAlbum, middleware),
-            'enterAlbumGiveaway': Method(self._enterAlbumGiveaway, middleware),
+            'buyAlbum': Method(self._buyAlbum, middleware)
+            # 'enterAlbumGiveaway': Method(self._enterAlbumGiveaway, middleware),
         }
 
     def buyAlbum(self, ctx, ASIN, acct):
@@ -81,22 +81,20 @@ class Client(Iface):
         """
         return self._methods['buyAlbum']([ctx, ASIN, acct])
 
-    @gen.coroutine
     def _buyAlbum(self, ctx, ASIN, acct):
         delta = timedelta(milliseconds=ctx.timeout)
-        callback_future = Future()
-        timeout_future = gen.with_timeout(delta, callback_future)
-        self._transport.register(ctx, self._recv_buyAlbum(ctx, callback_future))
+        # callback_future = Future()
+        # timeout_future = gen.with_timeout(delta, callback_future)
+        self._transport.register(ctx, self._recv_buyAlbum(ctx))
         try:
-            yield self._send_buyAlbum(ctx, ASIN, acct)
-            result = yield timeout_future
-        except gen.TimeoutError:
-            raise FTimeoutException('buyAlbum timed out after {} milliseconds'.format(ctx.timeout))
+            result =  self._send_buyAlbum(ctx, ASIN, acct)
+        #     result = yield timeout_future
+        # except gen.TimeoutError:
+        #     raise FTimeoutException('buyAlbum timed out after {} milliseconds'.format(ctx.timeout))
         finally:
             self._transport.unregister(ctx)
-        raise gen.Return(result)
+        return result
 
-    @gen.coroutine
     def _send_buyAlbum(self, ctx, ASIN, acct):
         buffer = TMemoryOutputBuffer(self._transport.get_request_size_limit())
         oprot = self._protocol_factory.get_protocol(buffer)
@@ -107,9 +105,9 @@ class Client(Iface):
         args.acct = acct
         args.write(oprot)
         oprot.writeMessageEnd()
-        yield self._transport.send(buffer.getvalue())
+        self._transport.send(buffer.getvalue())
 
-    def _recv_buyAlbum(self, ctx, future):
+    def _recv_buyAlbum(self, ctx):
         def buyAlbum_callback(transport):
             iprot = self._protocol_factory.get_protocol(transport)
             iprot.read_response_headers(ctx)
@@ -119,91 +117,22 @@ class Client(Iface):
                 x.read(iprot)
                 iprot.readMessageEnd()
                 if x.type == FApplicationException.RESPONSE_TOO_LARGE:
-                    future.set_exception(FMessageSizeException.response(x.message))
-                    return
+                    raise FMessageSizeException.response(x.message)
+
                 if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:
-                    future.set_exception(FRateLimitException(x.message))
-                    return
-                future.set_exception(x)
-                return
+                    raise(FRateLimitException(x.message))
+                raise x
+
             result = buyAlbum_result()
             result.read(iprot)
             iprot.readMessageEnd()
             if result.error is not None:
-                future.set_exception(result.error)
-                return
+                raise RuntimeError(result.error)
             if result.success is not None:
-                future.set_result(result.success)
-                return
+                return result
             x = TApplicationException(TApplicationException.MISSING_RESULT, "buyAlbum failed: unknown result")
-            future.set_exception(x)
             raise x
         return buyAlbum_callback
-
-    def enterAlbumGiveaway(self, ctx, email, name):
-        """
-        Args:
-            ctx: FContext
-            email: string
-            name: string
-        """
-        return self._methods['enterAlbumGiveaway']([ctx, email, name])
-
-    @gen.coroutine
-    def _enterAlbumGiveaway(self, ctx, email, name):
-        delta = timedelta(milliseconds=ctx.timeout)
-        callback_future = Future()
-        timeout_future = gen.with_timeout(delta, callback_future)
-        self._transport.register(ctx, self._recv_enterAlbumGiveaway(ctx, callback_future))
-        try:
-            yield self._send_enterAlbumGiveaway(ctx, email, name)
-            result = yield timeout_future
-        except gen.TimeoutError:
-            raise FTimeoutException('enterAlbumGiveaway timed out after {} milliseconds'.format(ctx.timeout))
-        finally:
-            self._transport.unregister(ctx)
-        raise gen.Return(result)
-
-    @gen.coroutine
-    def _send_enterAlbumGiveaway(self, ctx, email, name):
-        buffer = TMemoryOutputBuffer(self._transport.get_request_size_limit())
-        oprot = self._protocol_factory.get_protocol(buffer)
-        oprot.write_request_headers(ctx)
-        oprot.writeMessageBegin('enterAlbumGiveaway', TMessageType.CALL, 0)
-        args = enterAlbumGiveaway_args()
-        args.email = email
-        args.name = name
-        args.write(oprot)
-        oprot.writeMessageEnd()
-        yield self._transport.send(buffer.getvalue())
-
-    def _recv_enterAlbumGiveaway(self, ctx, future):
-        def enterAlbumGiveaway_callback(transport):
-            iprot = self._protocol_factory.get_protocol(transport)
-            iprot.read_response_headers(ctx)
-            _, mtype, _ = iprot.readMessageBegin()
-            if mtype == TMessageType.EXCEPTION:
-                x = TApplicationException()
-                x.read(iprot)
-                iprot.readMessageEnd()
-                if x.type == FApplicationException.RESPONSE_TOO_LARGE:
-                    future.set_exception(FMessageSizeException.response(x.message))
-                    return
-                if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:
-                    future.set_exception(FRateLimitException(x.message))
-                    return
-                future.set_exception(x)
-                return
-            result = enterAlbumGiveaway_result()
-            result.read(iprot)
-            iprot.readMessageEnd()
-            if result.success is not None:
-                future.set_result(result.success)
-                return
-            x = TApplicationException(TApplicationException.MISSING_RESULT, "enterAlbumGiveaway failed: unknown result")
-            future.set_exception(x)
-            raise x
-        return enterAlbumGiveaway_callback
 
 
 class Processor(FBaseProcessor):
@@ -220,7 +149,7 @@ class Processor(FBaseProcessor):
 
         super(Processor, self).__init__()
         self.add_to_processor_map('buyAlbum', _buyAlbum(Method(handler.buyAlbum, middleware), self.get_write_lock()))
-        self.add_to_processor_map('enterAlbumGiveaway', _enterAlbumGiveaway(Method(handler.enterAlbumGiveaway, middleware), self.get_write_lock()))
+        # self.add_to_processor_map('enterAlbumGiveaway', _enterAlbumGiveaway(Method(handler.enterAlbumGiveaway, middleware), self.get_write_lock()))
 
 
 class _buyAlbum(FProcessorFunction):
@@ -229,66 +158,65 @@ class _buyAlbum(FProcessorFunction):
         self._handler = handler
         self._lock = lock
 
-    @gen.coroutine
     def process(self, ctx, iprot, oprot):
         args = buyAlbum_args()
         args.read(iprot)
         iprot.readMessageEnd()
         result = buyAlbum_result()
         try:
-            result.success = yield gen.maybe_future(self._handler([ctx, args.ASIN, args.acct]))
+            result = self._handler([ctx, args.ASIN, args.acct])
         except PurchasingError as error:
             result.error = error
         except FRateLimitException as ex:
-            with (yield self._lock.acquire()):
+            with self._lock.acquire():
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "buyAlbum", ex.message)
                 return
         except Exception as e:
-            with (yield self._lock.acquire()):
-                e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "buyAlbum", e.message)
+            # with self._lock.acquire():
+            e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "buyAlbum", e.message)
             raise e
-        with (yield self._lock.acquire()):
-            try:
-                oprot.write_response_headers(ctx)
-                oprot.writeMessageBegin('buyAlbum', TMessageType.REPLY, 0)
-                result.write(oprot)
-                oprot.writeMessageEnd()
-                oprot.get_transport().flush()
-            except FMessageSizeException as e:
-                raise _write_application_exception(ctx, oprot, FApplicationException.RESPONSE_TOO_LARGE, "buyAlbum", e.message)
-
-
-class _enterAlbumGiveaway(FProcessorFunction):
-
-    def __init__(self, handler, lock):
-        self._handler = handler
-        self._lock = lock
-
-    @gen.coroutine
-    def process(self, ctx, iprot, oprot):
-        args = enterAlbumGiveaway_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = enterAlbumGiveaway_result()
+        # with self._lock.acquire():
         try:
-            result.success = yield gen.maybe_future(self._handler([ctx, args.email, args.name]))
-        except FRateLimitException as ex:
-            with (yield self._lock.acquire()):
-                _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "enterAlbumGiveaway", ex.message)
-                return
-        except Exception as e:
-            with (yield self._lock.acquire()):
-                e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "enterAlbumGiveaway", e.message)
-            raise e
-        with (yield self._lock.acquire()):
-            try:
-                oprot.write_response_headers(ctx)
-                oprot.writeMessageBegin('enterAlbumGiveaway', TMessageType.REPLY, 0)
-                result.write(oprot)
-                oprot.writeMessageEnd()
-                oprot.get_transport().flush()
-            except FMessageSizeException as e:
-                raise _write_application_exception(ctx, oprot, FApplicationException.RESPONSE_TOO_LARGE, "enterAlbumGiveaway", e.message)
+            oprot.write_response_headers(ctx)
+            oprot.writeMessageBegin('buyAlbum', TMessageType.REPLY, 0)
+            result.write(oprot)
+            oprot.writeMessageEnd()
+            oprot.get_transport().flush()
+        except FMessageSizeException as e:
+            raise _write_application_exception(ctx, oprot, FApplicationException.RESPONSE_TOO_LARGE, "buyAlbum", e.message)
+
+
+# class _enterAlbumGiveaway(FProcessorFunction):
+#
+#     def __init__(self, handler, lock):
+#         self._handler = handler
+#         self._lock = lock
+#
+#     @gen.coroutine
+#     def process(self, ctx, iprot, oprot):
+#         args = enterAlbumGiveaway_args()
+#         args.read(iprot)
+#         iprot.readMessageEnd()
+#         result = enterAlbumGiveaway_result()
+#         try:
+#             result.success = yield gen.maybe_future(self._handler([ctx, args.email, args.name]))
+#         except FRateLimitException as ex:
+#             with (yield self._lock.acquire()):
+#                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "enterAlbumGiveaway", ex.message)
+#                 return
+#         except Exception as e:
+#             with (yield self._lock.acquire()):
+#                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "enterAlbumGiveaway", e.message)
+#             raise e
+#         with (yield self._lock.acquire()):
+#             try:
+#                 oprot.write_response_headers(ctx)
+#                 oprot.writeMessageBegin('enterAlbumGiveaway', TMessageType.REPLY, 0)
+#                 result.write(oprot)
+#                 oprot.writeMessageEnd()
+#                 oprot.get_transport().flush()
+#             except FMessageSizeException as e:
+#                 raise _write_application_exception(ctx, oprot, FApplicationException.RESPONSE_TOO_LARGE, "enterAlbumGiveaway", e.message)
 
 
 def _write_application_exception(ctx, oprot, typ, method, message):

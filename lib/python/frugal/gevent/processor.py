@@ -4,15 +4,15 @@ from thrift.Thrift import TApplicationException
 from thrift.Thrift import TException
 from thrift.Thrift import TMessageType
 from thrift.Thrift import TType
-from tornado import gen
-from tornado.locks import Lock
+# from tornado import gen
+# from tornado.locks import Lock
+from threading import Lock
 
 logger = logging.getLogger(__name__)
 
 
 class FProcessorFunction(object):
 
-    @gen.coroutine
     def process(self, ctx, iprot, oprot):
         pass
 
@@ -21,7 +21,6 @@ class FProcessor(object):
     """FProcessor is a generic object which operates upon an input stream and
     writes to some output stream.
     """
-    @gen.coroutine
     def process(self, iprot, oprot):
         pass
 
@@ -46,7 +45,6 @@ class FBaseProcessor(FProcessor):
         """Return the write lock."""
         return self._write_lock
 
-    @gen.coroutine
     def process(self, iprot, oprot):
         """Process an input protocol and output protocol
 
@@ -66,7 +64,7 @@ class FBaseProcessor(FProcessor):
         # If the function was in our dict, call process on it.
         if processor_function:
             try:
-                ret = yield processor_function.process(context, iprot, oprot)
+                ret = processor_function.process(context, iprot, oprot)
             except TException:
                 logging.exception('frugal: exception occurred while '
                                   'processing request with correlation id {}'
@@ -77,7 +75,7 @@ class FBaseProcessor(FProcessor):
                                   'exception on request with correlation id {}'
                                   .format(context.correlation_id))
                 raise
-            raise gen.Return(ret)
+            raise ret
 
         iprot.skip(TType.STRUCT)
         iprot.readMessageEnd()
@@ -85,12 +83,12 @@ class FBaseProcessor(FProcessor):
         ex = TApplicationException(TApplicationException.UNKNOWN_METHOD,
                                    "Unknown function: {0}".format(name))
 
-        with (yield self._write_lock.acquire()):
-            oprot.write_response_headers(context)
-            oprot.writeMessageBegin(name, TMessageType.EXCEPTION, 0)
-            ex.write(oprot)
-            oprot.writeMessageEnd()
-            oprot.trans.flush()
+        # with (self._write_lock.acquire()):
+        oprot.write_response_headers(context)
+        oprot.writeMessageBegin(name, TMessageType.EXCEPTION, 0)
+        ex.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
 
         logger.exception(ex)
         raise ex

@@ -3,17 +3,17 @@
 import logging
 import sys
 import uuid
+import gevent
 
 from thrift.protocol import TBinaryProtocol
 
-from tornado import gen, ioloop
 
-from nats.io.client import Client as NATS
+from gnats import Client as NATS
 
 from frugal.protocol import FProtocolFactory
-from frugal.tornado.server import FNatsTornadoServer
+from frugal.gevent.server import FNatsGeventServer
 
-sys.path.append('gen-py.tornado')
+sys.path.append('gen-py.gevent')
 
 from v1.music.f_Store import Processor as FStoreProcessor  # noqa
 from v1.music.f_Store import Iface  # noqa
@@ -52,15 +52,14 @@ class StoreHandler(Iface):
                               pro=PerfRightsOrg.ASCAP)]
 
         return album
+    #
+    # def enterAlbumGiveaway(self, ctx, email, name):
+    #     """
+    #     Always return success (true)
+    #     """
+    #     return True
 
-    def enterAlbumGiveaway(self, ctx, email, name):
-        """
-        Always return success (true)
-        """
-        return True
 
-
-@gen.coroutine
 def main():
     # Declare the protocol stack used for serialization.
     # Protocol stacks must match between clients and servers.
@@ -73,7 +72,7 @@ def main():
         "servers": ["nats://127.0.0.1:4222"]
     }
 
-    yield nats_client.connect(**options)
+    nats_client.connect(**options)
 
     # Create a new server processor.
     # Incoming requests to the processor are passed to the handler.
@@ -82,14 +81,14 @@ def main():
 
     # Create a new music store server using the processor,
     # The server will listen on the music-service NATS topic
-    server = FNatsTornadoServer(nats_client, "music-service",
+    server = FNatsGeventServer(nats_client, "music-service",
                                 processor, prot_factory)
 
     root.info("Starting server...")
 
-    yield server.serve()
+    server.serve()
+    gevent.sleep(100)
+
 
 if __name__ == '__main__':
-    io_loop = ioloop.IOLoop.instance()
-    io_loop.add_callback(main)
-    io_loop.start()
+    gevent.joinall([gevent.spawn(main)])

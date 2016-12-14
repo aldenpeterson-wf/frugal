@@ -3,6 +3,7 @@
 import logging
 import sys
 import uuid
+import gevent
 
 from thrift.protocol import TBinaryProtocol
 
@@ -61,11 +62,19 @@ def main():
                           composer="Béatrice Martin",
                           duration=169,
                           pro=PerfRightsOrg.ASCAP)]
+
+    # p = gevent.Greenlet(publisher.publish_Winner, FContext(), album)
+
     publisher.publish_Winner(FContext(), album)
+    publisher.publish_Winner(FContext(), album)
+    publisher.publish_Winner(FContext(), album)
+    # publishes = [p]
+    # gevent.joinall(publishes)
 
     publisher.close()
     nats_client.close()
 
 
 if __name__ == '__main__':
-    main()
+    gevent.joinall([gevent.spawn(main)])
+

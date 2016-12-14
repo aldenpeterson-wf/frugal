@@ -1,5 +1,6 @@
 import logging
 
+import gevent
 from thrift.transport.TTransport import TTransportException, TMemoryBuffer
 
 from frugal import _NATS_MAX_MESSAGE_SIZE
@@ -44,12 +45,14 @@ class FNatsPublisherTranpsort(FPublisherTransport):
         return self._nats_client.is_connected
 
     def publish(self, topic, data):
+        print ('FNatsPublisherTranpsort: publish invoked')
         if not self.is_open():
             msg = 'Nats not connected!'
             raise TTransportException(TTransportException.NOT_OPEN, msg)
         if self._check_publish_size(data):
             msg = 'Message exceeds NATS max message size'
             raise FMessageSizeException.request(msg)
+        print('Publishing message on topic:{}'.format(topic))
         self._nats_client.publish('frugal.{0}'.format(topic), data)
 
 
@@ -81,11 +84,14 @@ class FNatsSubscriberTransport(FSubscriberTransport):
 
         self._sub = self._nats_client.subscribe(
             'frugal.{0}'.format(topic),
-            queue=self._queue
+            queue=self._queue,
+            cb=lambda message: callback(TMemoryBuffer(message.data[4:]))
         )
         self._is_subscribed = True
-        while True:
-            callback(TMemoryBuffer(self._sub.next_msg().data[4:]))
+        # while True:
+        #     gevent.sleep(0)
+        #     print('looping')
+        #     callback(TMemoryBuffer(self._sub.next_msg().data[4:]))
 
     def unsubscribe(self):
         if not self.is_subscribed():
