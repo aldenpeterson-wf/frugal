@@ -1,5 +1,6 @@
 import logging
 import struct
+import gevent
 
 from thrift.Thrift import TApplicationException
 from thrift.transport.TTransport import TMemoryBuffer
@@ -48,6 +49,8 @@ class FNatsGeventServer(FServer):
         ]
 
         logger.info("Frugal server running...")
+        while True:
+            gevent.sleep(0)
 
     def stop(self):
         """Unsubscribe from server subject"""
@@ -61,6 +64,8 @@ class FNatsGeventServer(FServer):
         Args:
             msg: request message published to server subject
         """
+
+        print('Nats_transport: _on_message_callback called')
         reply_to = msg.reply
         if not reply_to:
             logger.warn("Discarding invalid NATS request (no reply)")
@@ -90,4 +95,5 @@ class FNatsGeventServer(FServer):
         if len(otrans) == 4:
             return
 
+        print('Nats_transport: responding to client with publish')
         self._nats_client.publish(reply_to, otrans.getvalue())

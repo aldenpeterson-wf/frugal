@@ -5,7 +5,7 @@ import sys
 import uuid
 import gevent
 
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TJSONProtocol
 
 
 from gnats import Client as NATS
@@ -46,8 +46,8 @@ class StoreHandler(Iface):
         album.duration = 12000
         album.tracks = [Track(title="Comme des enfants",
                               artist="Coeur de pirate",
-                              publisher="Grosse Boîte",
-                              composer="Béatrice Martin",
+                              publisher="Grosse Boite",
+                              composer="Beatrice Martin",
                               duration=169,
                               pro=PerfRightsOrg.ASCAP)]
 
@@ -63,7 +63,7 @@ class StoreHandler(Iface):
 def main():
     # Declare the protocol stack used for serialization.
     # Protocol stacks must match between clients and servers.
-    prot_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
+    prot_factory = FProtocolFactory(TJSONProtocol.TJSONProtocolFactory())
 
     # Open a NATS connection to receive requests
     nats_client = NATS()
@@ -87,7 +87,7 @@ def main():
     root.info("Starting server...")
 
     server.serve()
-    gevent.sleep(100)
+    # gevent.sleep(100)
 
 
 if __name__ == '__main__':

@@ -47,6 +47,7 @@ class FNatsTransport(FGeventTransport):
         self._is_open = True
 
     def _on_message_callback(self, msg):
+        print('Nats_transport:message callback being executed')
         self.execute_frame(msg.data)
 
     def close(self):
@@ -64,6 +65,7 @@ class FNatsTransport(FGeventTransport):
 
         subject = self._subject
         inbox = self._inbox
-        self._nats_client.publish_request(subject, inbox, data)
+        print('Nats_transport:send about to publish')
+        self._nats_client.publish(subject, data, reply=inbox)
         # If we don't flush here the ioloop waits for 2 minutes before flushing
-        self._nats_client.flush()
+        # self._nats_client.flush()

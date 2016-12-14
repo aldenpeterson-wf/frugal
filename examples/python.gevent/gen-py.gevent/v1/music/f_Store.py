@@ -14,8 +14,8 @@ from frugal.exceptions import FMessageSizeException
 from frugal.exceptions import FRateLimitException
 from frugal.exceptions import FTimeoutException
 from frugal.middleware import Method
-from frugal.gevent.processor import FBaseProcessor
-from frugal.gevent.processor import FProcessorFunction
+from frugal.processor import FBaseProcessor
+from frugal.processor import FProcessorFunction
 from frugal.transport import TMemoryOutputBuffer
 from thrift.Thrift import TApplicationException
 from thrift.Thrift import TMessageType
@@ -109,28 +109,35 @@ class Client(Iface):
 
     def _recv_buyAlbum(self, ctx):
         def buyAlbum_callback(transport):
+
+            print('f_store:buyAlbum_callback invoked')
             iprot = self._protocol_factory.get_protocol(transport)
+            print('f_store:buyAlbum_callback reading response headers')
             iprot.read_response_headers(ctx)
             _, mtype, _ = iprot.readMessageBegin()
+            print('f_store:buyAlbum_callback checking exception')
             if mtype == TMessageType.EXCEPTION:
                 x = TApplicationException()
                 x.read(iprot)
                 iprot.readMessageEnd()
                 if x.type == FApplicationException.RESPONSE_TOO_LARGE:
-                    raise FMessageSizeException.response(x.message)
+                    return FMessageSizeException.response(x.message)
 
                 if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:
-                    raise(FRateLimitException(x.message))
-                raise x
+                    return FRateLimitException(x.message)
+                return x
 
             result = buyAlbum_result()
+
+            print('f_store:buyAlbum_callback reading result from iprot')
             result.read(iprot)
+            print('f_store:_recv_buyAlbum result=', result)
             iprot.readMessageEnd()
             if result.error is not None:
                 raise RuntimeError(result.error)
             if result.success is not None:
                 return result
-            x = TApplicationException(TApplicationException.MISSING_RESULT, "buyAlbum failed: unknown result")
+            x = TApplicationException(TApplicationException.MISSING_RESULT, "buyAlbum failed: unknown result GENERATED CODE")
             raise x
         return buyAlbum_callback
 
@@ -163,6 +170,7 @@ class _buyAlbum(FProcessorFunction):
         args.read(iprot)
         iprot.readMessageEnd()
         result = buyAlbum_result()
+        print('Processing message')
         try:
             result = self._handler([ctx, args.ASIN, args.acct])
         except PurchasingError as error:
@@ -173,15 +181,19 @@ class _buyAlbum(FProcessorFunction):
                 return
         except Exception as e:
             # with self._lock.acquire():
+            print (e)
             e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "buyAlbum", e.message)
             raise e
         # with self._lock.acquire():
         try:
+            print('Generated code: writing response to client...')
             oprot.write_response_headers(ctx)
             oprot.writeMessageBegin('buyAlbum', TMessageType.REPLY, 0)
             result.write(oprot)
             oprot.writeMessageEnd()
+            print('Flushing...')
             oprot.get_transport().flush()
+            print('Flushed!')
         except FMessageSizeException as e:
             raise _write_application_exception(ctx, oprot, FApplicationException.RESPONSE_TOO_LARGE, "buyAlbum", e.message)
 
@@ -239,9 +251,14 @@ class buyAlbum_args(object):
         self.acct = acct
 
     def read(self, iprot):
+
+        # print('buyAlbum_args:reading')
         iprot.readStructBegin()
         while True:
+            # print('buyAlbum_args:reading')
             (fname, ftype, fid) = iprot.readFieldBegin()
+
+            # print('buyAlbum_args:reading  tuple',  (fname, ftype, fid))
             if ftype == TType.STOP:
                 break
             if fid == 1:
@@ -256,8 +273,11 @@ class buyAlbum_args(object):
                     iprot.skip(ftype)
             else:
                 iprot.skip(ftype)
+            # print('buyAlbum_args:readFieldEnd')
             iprot.readFieldEnd()
+        # print('buyAlbum_args:readStructEnd')
         iprot.readStructEnd()
+        # print('buyAlbum_args: returning')
 
     def write(self, oprot):
         oprot.writeStructBegin('buyAlbum_args')

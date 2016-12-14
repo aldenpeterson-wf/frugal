@@ -4,7 +4,7 @@ import logging
 import sys
 import uuid
 
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TJSONProtocol
 
 from tornado import gen, ioloop
 
@@ -64,7 +64,7 @@ class StoreHandler(Iface):
 def main():
     # Declare the protocol stack used for serialization.
     # Protocol stacks must match between clients and servers.
-    prot_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
+    prot_factory = FProtocolFactory(TJSONProtocol.TJSONProtocolFactory())
 
     # Open a NATS connection to receive requests
     nats_client = NATS()
