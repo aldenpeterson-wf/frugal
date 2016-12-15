@@ -1,6 +1,6 @@
 from gnats.client.utils import new_inbox
 from thrift.transport.TTransport import TTransportException
-
+import gevent
 from frugal.gevent.transport import FGeventTransport
 
 _NOT_OPEN = 'NATS not connected.'
@@ -47,14 +47,16 @@ class FNatsTransport(FGeventTransport):
         self._is_open = True
 
     def _on_message_callback(self, msg):
+        print('nats_transport: _on_message_callback executing frame')
         self.execute_frame(msg.data)
 
     def close(self):
         """Unsubscribes from the inbox subject"""
         if not self._sub:
             return
+        print('Nats_transport closing')
         self._nats_client.flush()
-        self._nats_client.unsubscribe(self._sub.id)
+        self._nats_client.unsubscribe(self._sub)
         self._is_open = False
 
     def send(self, data):
@@ -65,5 +67,6 @@ class FNatsTransport(FGeventTransport):
         subject = self._subject
         inbox = self._inbox
         self._nats_client.publish(subject, data, reply=inbox)
+        # gevent.sleep(1)
         # If we don't flush here the ioloop waits for 2 minutes before flushing
-        self._nats_client.flush()
+        # self._nats_client.flush()

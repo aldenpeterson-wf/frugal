@@ -24,8 +24,8 @@ func (t *GeventGenerator) GenerateServiceImports(file *os.File, s *parser.Servic
 	imports += "from frugal.exceptions import FRateLimitException\n"
 	imports += "from frugal.exceptions import FTimeoutException\n"
 	imports += "from frugal.middleware import Method\n"
-	imports += "from frugal.gevent.processor import FBaseProcessor\n"
-	imports += "from frugal.gevent.processor import FProcessorFunction\n"
+	imports += "from frugal.processor import FBaseProcessor\n"
+	imports += "from frugal.processor import FProcessorFunction\n"
 	imports += "from frugal.transport import TMemoryOutputBuffer\n"
 	imports += "from thrift.Thrift import TApplicationException\n"
 	imports += "from thrift.Thrift import TMessageType\n"
@@ -95,13 +95,16 @@ func (t *GeventGenerator) generateClientMethod(method *parser.Method) string {
 		return contents
 	}
 
-	contents += tab + "try:\n"
-	contents += tabtab + fmt.Sprintf("result = self._send_%s(ctx%s)\n", method.Name, t.generateClientArgs(method.Arguments))
-	contents += tab + "except TimeoutError:\n"
-	contents += fmt.Sprintf(tabtab+"raise FTimeoutException('%s timed out after {} milliseconds'.format(ctx.timeout))\n", method.Name)
-	contents += tab + "finally:\n"
-	contents += tabtab + "self._transport.unregister(ctx)\n"
-	contents += tab + "return result\n\n"
+	contents += tabtab + fmt.Sprintf("event = AsyncResult()")
+	contents += tabtab + fmt.Sprintf("self._transport.register(ctx, self._recv_%s(ctx, event))\n", method.Name)
+	contents += tabtab + "try:\n"
+	contents += tabtabtab + fmt.Sprintf("self._send_%s(ctx%s)\n", method.Name, t.generateClientArgs(method.Arguments))
+	contents += tabtabtab + fmt.Sprintf("result = event.get()")
+	contents += tabtab+ "except TimeoutError:\n"
+	contents += fmt.Sprintf(tabtabtab+"raise FTimeoutException('%s timed out after {} milliseconds'.format(ctx.timeout))\n", method.Name)
+	contents += tabtab + "finally:\n"
+	contents += tabtabtab + "self._transport.unregister(ctx)\n"
+	contents += tabtab + "return result\n\n"
 	contents += t.generateClientSendMethod(method)
 	contents += t.generateClientRecvMethod(method)
 
@@ -127,7 +130,7 @@ func (t *GeventGenerator) generateClientSendMethod(method *parser.Method) string
 }
 
 func (t *GeventGenerator) generateClientRecvMethod(method *parser.Method) string {
-	contents := tab + fmt.Sprintf("def _recv_%s(self, ctx):\n", method.Name)
+	contents := tab + fmt.Sprintf("def _recv_%s(self, ctx, event):\n", method.Name)
 	contents += tabtab + fmt.Sprintf("def %s_callback(transport):\n", method.Name)
 	contents += tabtabtab + "iprot = self._protocol_factory.get_protocol(transport)\n"
 	contents += tabtabtab + "iprot.read_response_headers(ctx)\n"
@@ -137,10 +140,13 @@ func (t *GeventGenerator) generateClientRecvMethod(method *parser.Method) string
 	contents += tabtabtabtab + "x.read(iprot)\n"
 	contents += tabtabtabtab + "iprot.readMessageEnd()\n"
 	contents += tabtabtabtab + "if x.type == FApplicationException.RESPONSE_TOO_LARGE:\n"
-	contents += tabtabtabtabtab + "return FMessageSizeException.response(x.message)\n"
+	contents += tabtabtabtabtab + "event.set(FMessageSizeException.response(x.message))\n"
+	contents += tabtabtabtabtab + "return\n"
 	contents += tabtabtabtab + "if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:\n"
-	contents += tabtabtabtabtab + "return FRateLimitException(x.message)\n"
-	contents += tabtabtabtab + "return x\n"
+	contents += tabtabtabtabtab + "event.set(FRateLimitException.response(x.message))\n"
+	contents += tabtabtabtabtab + "return\n"
+	contents += tabtabtabtab + "event.set(x)\n"
+	contents += tabtabtabtab + "return\n"
 	contents += tabtabtab + fmt.Sprintf("result = %s_result()\n", method.Name)
 	contents += tabtabtab + "result.read(iprot)\n"
 	contents += tabtabtab + "iprot.readMessageEnd()\n"
@@ -154,8 +160,7 @@ func (t *GeventGenerator) generateClientRecvMethod(method *parser.Method) string
 		contents += tabtabtab + "if result.success is not None:\n"
 		contents += tabtabtabtab + "return result.success\n"
 		contents += tabtabtab + fmt.Sprintf(
-			"x = TApplicationException(TApplicationException.MISSING_RESULT, \"%s failed: unknown result\")\n", method.Name)
-		contents += tabtabtab + "raise x\n"
+			"raise TApplicationException(TApplicationException.MISSING_RESULT, \"%s failed: unknown result\")\n", method.Name)
 	}
 	contents += tabtab + fmt.Sprintf("return %s_callback\n\n", method.Name)
 
@@ -279,7 +284,7 @@ func (t *GeventGenerator) generateSubscribeMethod(scope *parser.Scope, op *parse
 		docstr[0] = "\n" + tabtab + docstr[0]
 		docstr = append(op.Comment, docstr...)
 	}
-	method += tab + fmt.Sprintf("def subscribe_%s(self, %s%s_handler):\n", op.Name, args, op.Name)
+	method := tab + fmt.Sprintf("def subscribe_%s(self, %s%s_handler):\n", op.Name, args, op.Name)
 	method += t.generateDocString(docstr, tabtab)
 	method += "\n"
 

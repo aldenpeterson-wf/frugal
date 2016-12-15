@@ -34,19 +34,19 @@ root.addHandler(ch)
 
 
 
-def publish():
+def publish(nats_client):
     # Declare the protocol stack used for serialization.
     # Protocol stacks must match between publishers and subscribers.
     prot_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
 
     # Open a NATS connection to receive requests
-    nats_client = NATS()
-    options = {
-        "verbose": True,
-        "servers": ["nats://127.0.0.1:4222"]
-    }
+    # nats_client = NATS()
+    # options = {
+    #     "verbose": True,
+    #     "servers": ["nats://127.0.0.1:4222"]
+    # }
 
-    nats_client.connect(**options)
+    # nats_client.connect(**options)
 
     # Create a pub sub scope using the configured transport and protocol
     transport_factory = FNatsPublisherTransportFactory(nats_client)
@@ -101,7 +101,7 @@ def main():
 
     print("Subscriber starting...")
 
-    publish()
+    publish(nats_client)
 
 if __name__ == '__main__':
     gevent.joinall([gevent.spawn(main)])

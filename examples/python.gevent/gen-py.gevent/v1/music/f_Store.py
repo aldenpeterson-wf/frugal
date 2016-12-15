@@ -8,6 +8,8 @@
 
 from datetime import timedelta
 from threading import Lock
+import gevent
+from gevent.event import AsyncResult
 
 from frugal.exceptions import FApplicationException
 from frugal.exceptions import FMessageSizeException
@@ -19,7 +21,6 @@ from frugal.processor import FProcessorFunction
 from frugal.transport import TMemoryOutputBuffer
 from thrift.Thrift import TApplicationException
 from thrift.Thrift import TMessageType
-
 from .ttypes import *
 
 
@@ -80,10 +81,16 @@ class Client(Iface):
         return self._methods['buyAlbum']([ctx, ASIN, acct])
 
     def _buyAlbum(self, ctx, ASIN, acct):
-        self._transport.register(ctx, self._recv_buyAlbum(ctx))
+        print('buying album')
+        event = AsyncResult()
+        self._transport.register(ctx, self._recv_buyAlbum(ctx, event))
         try:
-            result = self._send_buyAlbum(ctx, ASIN, acct)
-        except TimeoutError:
+            print('getting result')
+            self._send_buyAlbum(ctx, ASIN, acct)
+            result = event.get()
+            print('result=', result)
+        except Exception as e:
+            print('Exception=', e)
             raise FTimeoutException('buyAlbum timed out after {} milliseconds'.format(ctx.timeout))
         finally:
             self._transport.unregister(ctx)
@@ -101,34 +108,34 @@ class Client(Iface):
         oprot.writeMessageEnd()
         self._transport.send(buffer.getvalue())
 
-    def _recv_buyAlbum(self, ctx):
+    def _recv_buyAlbum(self, ctx, event):
         def buyAlbum_callback(transport):
-
-            print('f_store:buyAlbum_callback invoked')
+            print('receiving buy album')
             iprot = self._protocol_factory.get_protocol(transport)
-            print('f_store:buyAlbum_callback reading response headers')
             iprot.read_response_headers(ctx)
             _, mtype, _ = iprot.readMessageBegin()
-            print('f_store:buyAlbum_callback checking exception')
             if mtype == TMessageType.EXCEPTION:
                 x = TApplicationException()
                 x.read(iprot)
                 iprot.readMessageEnd()
                 if x.type == FApplicationException.RESPONSE_TOO_LARGE:
-                    return FMessageSizeException.response(x.message)
+                    event.set(FMessageSizeException.response(x.message))
+                    return
                 if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:
-                    return FRateLimitException(x.message)
+                    event.set(FRateLimitException.response(x.message))
+                    return
+                event.set(x)
                 return
             result = buyAlbum_result()
-
-            print('f_store:buyAlbum_callback reading result from iprot')
             result.read(iprot)
-            print('f_store:_recv_buyAlbum result=', result)
             iprot.readMessageEnd()
             if result.error is not None:
-                return result.error
+                event.set(result.error)
+                return
             if result.success is not None:
-                return result.success
+                print ('f_store: _recv_buyAlbum - result=', result)
+                event.set(result.success)
+                return
             raise TApplicationException(TApplicationException.MISSING_RESULT, "buyAlbum failed: unknown result")
         return buyAlbum_callback
 
@@ -145,7 +152,7 @@ class Client(Iface):
         self._transport.register(ctx, self._recv_enterAlbumGiveaway(ctx))
         try:
             result = self._send_enterAlbumGiveaway(ctx, email, name)
-        except TimeoutError:
+        except Exception:
             raise FTimeoutException('enterAlbumGiveaway timed out after {} milliseconds'.format(ctx.timeout))
         finally:
             self._transport.unregister(ctx)
@@ -161,9 +168,9 @@ class Client(Iface):
         args.name = name
         args.write(oprot)
         oprot.writeMessageEnd()
-        yield self._transport.send(buffer.getvalue())
+        self._transport.send(buffer.getvalue())
 
-    def _recv_enterAlbumGiveaway(self, ctx, future):
+    def _recv_enterAlbumGiveaway(self, ctx):
         def enterAlbumGiveaway_callback(transport):
             iprot = self._protocol_factory.get_protocol(transport)
             iprot.read_response_headers(ctx)
@@ -176,7 +183,7 @@ class Client(Iface):
                     return FMessageSizeException.response(x.message)
                 if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:
                     return FRateLimitException(x.message)
-                return
+                return x
             result = enterAlbumGiveaway_result()
             result.read(iprot)
             iprot.readMessageEnd()
@@ -200,7 +207,7 @@ class Processor(FBaseProcessor):
 
         super(Processor, self).__init__()
         self.add_to_processor_map('buyAlbum', _buyAlbum(Method(handler.buyAlbum, middleware), self.get_write_lock()))
-        # self.add_to_processor_map('enterAlbumGiveaway', _enterAlbumGiveaway(Method(handler.enterAlbumGiveaway, middleware), self.get_write_lock()))
+        self.add_to_processor_map('enterAlbumGiveaway', _enterAlbumGiveaway(Method(handler.enterAlbumGiveaway, middleware), self.get_write_lock()))
 
 
 class _buyAlbum(FProcessorFunction):
@@ -214,7 +221,6 @@ class _buyAlbum(FProcessorFunction):
         args.read(iprot)
         iprot.readMessageEnd()
         result = buyAlbum_result()
-        print('Processing message')
         try:
             result.success = self._handler([ctx, args.ASIN, args.acct])
         except PurchasingError as error:

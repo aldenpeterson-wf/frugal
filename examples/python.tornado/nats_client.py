@@ -61,9 +61,9 @@ def main():
 
     root.info("Bought an album %s\n", album)
 
-    yield store_client.enterAlbumGiveaway(FContext(),
-                                          "kevin@workiva.com",
-                                          "Kevin")
+    # yield store_client.enterAlbumGiveaway(FContext(),
+    #                                       "kevin@workiva.com",
+    #                                       "Kevin")
 
     yield nats_transport.close()
     yield nats_client.close()

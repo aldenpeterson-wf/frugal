@@ -88,15 +88,12 @@ class FNatsSubscriberTransport(FSubscriberTransport):
             cb=lambda message: callback(TMemoryBuffer(message.data[4:]))
         )
         self._is_subscribed = True
-        # while True:
-        #     gevent.sleep(0)
-        #     print('looping')
-        #     callback(TMemoryBuffer(self._sub.next_msg().data[4:]))
+
 
     def unsubscribe(self):
         if not self.is_subscribed():
             return
-
+        print('nats_transport unsubscribing')
         self._nats_client.unsubscribe(self._sub.id)
         self._sub = None
         self._is_subscribed = False
