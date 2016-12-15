@@ -64,7 +64,6 @@ class FNatsGeventServer(FServer):
         Args:
             msg: request message published to server subject
         """
-        print('FNatsGeventServer: _on_message_callback invoked')
         reply_to = msg.reply
         if not reply_to:
             logger.warn("Discarding invalid NATS request (no reply)")
