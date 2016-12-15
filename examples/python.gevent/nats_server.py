@@ -51,13 +51,15 @@ class StoreHandler(Iface):
                               duration=169,
                               pro=PerfRightsOrg.ASCAP)]
 
+        print("buy album called")
+
         return album
-    #
-    # def enterAlbumGiveaway(self, ctx, email, name):
-    #     """
-    #     Always return success (true)
-    #     """
-    #     return True
+
+    def enterAlbumGiveaway(self, ctx, email, name):
+        """
+        Always return success (true)
+        """
+        return True
 
 
 def main():

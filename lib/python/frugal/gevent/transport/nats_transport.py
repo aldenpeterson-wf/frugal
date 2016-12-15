@@ -26,7 +26,7 @@ class FNatsTransport(FGeventTransport):
         self._subject = subject
         self._inbox = inbox or new_inbox()
         self._is_open = False
-        self._sub_id = None
+        self._sub = None
 
     def is_open(self):
         return self._is_open and self._nats_client.is_connected
@@ -42,20 +42,19 @@ class FNatsTransport(FGeventTransport):
 
         cb = self._on_message_callback
         inbox = self._inbox
-        self._sub_id = self._nats_client.subscribe_async(inbox, cb=cb)
+        self._sub = self._nats_client.subscribe(inbox, cb=cb)
 
         self._is_open = True
 
     def _on_message_callback(self, msg):
-        print('Nats_transport:message callback being executed')
         self.execute_frame(msg.data)
 
     def close(self):
         """Unsubscribes from the inbox subject"""
-        if not self._sub_id:
+        if not self._sub:
             return
         self._nats_client.flush()
-        self._nats_client.unsubscribe(self._sub_id)
+        self._nats_client.unsubscribe(self._sub.id)
         self._is_open = False
 
     def send(self, data):
@@ -65,7 +64,6 @@ class FNatsTransport(FGeventTransport):
 
         subject = self._subject
         inbox = self._inbox
-        print('Nats_transport:send about to publish')
         self._nats_client.publish(subject, data, reply=inbox)
         # If we don't flush here the ioloop waits for 2 minutes before flushing
-        # self._nats_client.flush()
+        self._nats_client.flush()

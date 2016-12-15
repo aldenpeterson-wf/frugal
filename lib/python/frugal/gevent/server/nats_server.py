@@ -1,7 +1,7 @@
 import logging
 import struct
-import gevent
 
+import gevent
 from thrift.Thrift import TApplicationException
 from thrift.transport.TTransport import TMemoryBuffer
 
@@ -21,7 +21,7 @@ class FNatsGeventServer(FServer):
         """Create a new instance of FStatelessNatsTornadoServer
 
         Args:
-            nats_client: connected instance of nats.io.Client
+            nats_client: connected instance of gnats.Client
             subject: subject to listen on
             processor: FProcess
             protocol_factory: FProtocolFactory
@@ -33,19 +33,19 @@ class FNatsGeventServer(FServer):
         self._iprot_factory = protocol_factory
         self._oprot_factory = protocol_factory
         self._queue = queue
-        self._sub_ids = []
+        self._subs = []
 
     def serve(self):
         """Subscribe to provided subject and listen on provided queue"""
         queue = self._queue
         cb = self._on_message_callback
 
-        self._sub_ids = [
-            (self._nats_client.subscribe(
+        self._subs = [
+            self._nats_client.subscribe(
                 subject,
                 queue=queue,
                 cb=cb
-            )) for subject in self._subjects
+            ) for subject in self._subjects
         ]
 
         logger.info("Frugal server running...")
@@ -64,8 +64,6 @@ class FNatsGeventServer(FServer):
         Args:
             msg: request message published to server subject
         """
-
-        print('Nats_transport: _on_message_callback called')
         reply_to = msg.reply
         if not reply_to:
             logger.warn("Discarding invalid NATS request (no reply)")
@@ -95,5 +93,4 @@ class FNatsGeventServer(FServer):
         if len(otrans) == 4:
             return
 
-        print('Nats_transport: responding to client with publish')
         self._nats_client.publish(reply_to, otrans.getvalue())
