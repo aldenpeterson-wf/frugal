@@ -47,7 +47,6 @@ class FNatsTransport(FGeventTransport):
         self._is_open = True
 
     def _on_message_callback(self, msg):
-        print('nats_transport: _on_message_callback executing frame')
         self.execute_frame(msg.data)
 
     def close(self):

@@ -60,9 +60,9 @@ def main():
 
     root.info("Bought an album %s\n", album)
 
-    # store_client.enterAlbumGiveaway(FContext(),
-    #                                       "kevin@workiva.com",
-    #                                       "Kevin")
+    store_client.enterAlbumGiveaway(FContext(),
+                                          "kevin@workiva.com",
+                                          "Kevin")
 
     nats_transport.close()
     nats_client.close()
