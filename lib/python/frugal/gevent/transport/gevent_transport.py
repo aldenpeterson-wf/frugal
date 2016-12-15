@@ -24,7 +24,6 @@ class FGeventTransport(FTransport):
         Raises:
             StandardError: if registry has not been set.
         """
-        print('Registering context')
         self._registry.register(context, callback)
 
     def unregister(self, context):

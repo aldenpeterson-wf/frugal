@@ -45,14 +45,12 @@ class FNatsPublisherTranpsort(FPublisherTransport):
         return self._nats_client.is_connected
 
     def publish(self, topic, data):
-        print ('FNatsPublisherTranpsort: publish invoked')
         if not self.is_open():
             msg = 'Nats not connected!'
             raise TTransportException(TTransportException.NOT_OPEN, msg)
         if self._check_publish_size(data):
             msg = 'Message exceeds NATS max message size'
             raise FMessageSizeException.request(msg)
-        print('Publishing message on topic:{}'.format(topic))
         self._nats_client.publish('frugal.{0}'.format(topic), data)
 
 
@@ -93,7 +91,6 @@ class FNatsSubscriberTransport(FSubscriberTransport):
     def unsubscribe(self):
         if not self.is_subscribed():
             return
-        print('nats_transport unsubscribing')
         self._nats_client.unsubscribe(self._sub.id)
         self._sub = None
         self._is_subscribed = False

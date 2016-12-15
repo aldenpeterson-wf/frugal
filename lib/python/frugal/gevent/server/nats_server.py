@@ -2,6 +2,7 @@ import logging
 import struct
 
 import gevent
+from gevent.event import Event
 from thrift.Thrift import TApplicationException
 from thrift.transport.TTransport import TMemoryBuffer
 
@@ -49,8 +50,8 @@ class FNatsGeventServer(FServer):
         ]
 
         logger.info("Frugal server running...")
-        while True:
-            gevent.sleep(0)
+        blocking_event = Event()
+        blocking_event.wait()
 
     def stop(self):
         """Unsubscribe from server subject"""

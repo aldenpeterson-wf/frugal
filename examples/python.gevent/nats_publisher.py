@@ -63,13 +63,7 @@ def main():
                           duration=169,
                           pro=PerfRightsOrg.ASCAP)]
 
-    # p = gevent.Greenlet(publisher.publish_Winner, FContext(), album)
-
     publisher.publish_Winner(FContext(), album)
-    publisher.publish_Winner(FContext(), album)
-    publisher.publish_Winner(FContext(), album)
-    # publishes = [p]
-    # gevent.joinall(publishes)
 
     publisher.close()
     nats_client.close()

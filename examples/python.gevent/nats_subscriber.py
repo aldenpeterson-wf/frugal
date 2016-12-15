@@ -15,6 +15,7 @@ from frugal.provider import FScopeProvider
 from frugal.context import FContext
 from frugal.gevent.transport import FNatsPublisherTransportFactory
 
+from gevent.event import Event
 
 sys.path.append('gen-py.gevent')
 from v1.music.f_AlbumWinners_subscriber import AlbumWinnersSubscriber  # noqa
@@ -32,45 +33,6 @@ formatter = logging.Formatter(
 ch.setFormatter(formatter)
 root.addHandler(ch)
 
-
-
-def publish(nats_client):
-    # Declare the protocol stack used for serialization.
-    # Protocol stacks must match between publishers and subscribers.
-    prot_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
-
-    # Open a NATS connection to receive requests
-    # nats_client = NATS()
-    # options = {
-    #     "verbose": True,
-    #     "servers": ["nats://127.0.0.1:4222"]
-    # }
-
-    # nats_client.connect(**options)
-
-    # Create a pub sub scope using the configured transport and protocol
-    transport_factory = FNatsPublisherTransportFactory(nats_client)
-    provider = FScopeProvider(transport_factory, None, prot_factory)
-
-    # Create a publisher
-    publisher = AlbumWinnersPublisher(provider)
-    publisher.open()
-
-    # Publish an album win event
-    album = Album()
-    album.ASIN = str(uuid.uuid4())
-    album.duration = 12000
-    album.tracks = [Track(title="Comme des enfants",
-                          artist="Coeur de pirate",
-                          publisher="Grosse Grosse",
-                          composer="Martin Martin",
-                          duration=169,
-                          pro=PerfRightsOrg.ASCAP)]
-
-    publisher.publish_Winner(FContext(), album)
-
-    publisher.close()
-    nats_client.close()
 
 def main():
     # Declare the protocol stack used for serialization.
@@ -97,11 +59,11 @@ def main():
 
     print("Subscribing...")
     subscriber.subscribe_Winner(event_handler)
-    # gevent.sleep(1)
-
     print("Subscriber starting...")
 
-    publish(nats_client)
+    blocking_event = Event()
+    blocking_event.wait()
+
 
 if __name__ == '__main__':
     gevent.joinall([gevent.spawn(main)])

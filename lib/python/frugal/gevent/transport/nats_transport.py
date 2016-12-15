@@ -54,7 +54,6 @@ class FNatsTransport(FGeventTransport):
         """Unsubscribes from the inbox subject"""
         if not self._sub:
             return
-        print('Nats_transport closing')
         self._nats_client.flush()
         self._nats_client.unsubscribe(self._sub)
         self._is_open = False
@@ -67,6 +66,4 @@ class FNatsTransport(FGeventTransport):
         subject = self._subject
         inbox = self._inbox
         self._nats_client.publish(subject, data, reply=inbox)
-        # gevent.sleep(1)
-        # If we don't flush here the ioloop waits for 2 minutes before flushing
-        # self._nats_client.flush()
+
