@@ -19,6 +19,10 @@ func (t *GeventGenerator) GenerateServiceImports(file *os.File, s *parser.Servic
 	imports := "from datetime import timedelta\n"
 	imports += "from threading import Lock\n\n"
 
+
+	imports += "from gevent.event import AsyncResult\n"
+	imports += "from gevent import Timeout\n\n"
+
 	imports += "from frugal.exceptions import FApplicationException\n"
 	imports += "from frugal.exceptions import FMessageSizeException\n"
 	imports += "from frugal.exceptions import FRateLimitException\n"
@@ -95,12 +99,12 @@ func (t *GeventGenerator) generateClientMethod(method *parser.Method) string {
 		return contents
 	}
 
-	contents += tabtab + fmt.Sprintf("event = AsyncResult()")
+	contents += tabtab + fmt.Sprintf("event = AsyncResult()\n")
 	contents += tabtab + fmt.Sprintf("self._transport.register(ctx, self._recv_%s(ctx, event))\n", method.Name)
 	contents += tabtab + "try:\n"
 	contents += tabtabtab + fmt.Sprintf("self._send_%s(ctx%s)\n", method.Name, t.generateClientArgs(method.Arguments))
-	contents += tabtabtab + fmt.Sprintf("result = event.get()")
-	contents += tabtab+ "except TimeoutError:\n"
+	contents += tabtabtab + fmt.Sprintf("result = event.get(timeout=ctx.timeout/1000)\n")
+	contents += tabtab+ "except Timeout:\n"
 	contents += fmt.Sprintf(tabtabtab+"raise FTimeoutException('%s timed out after {} milliseconds'.format(ctx.timeout))\n", method.Name)
 	contents += tabtab + "finally:\n"
 	contents += tabtabtab + "self._transport.unregister(ctx)\n"
@@ -152,13 +156,15 @@ func (t *GeventGenerator) generateClientRecvMethod(method *parser.Method) string
 	contents += tabtabtab + "iprot.readMessageEnd()\n"
 	for _, err := range method.Exceptions {
 		contents += tabtabtab + fmt.Sprintf("if result.%s is not None:\n", err.Name)
-		contents += tabtabtabtab + fmt.Sprintf("return result.%s\n", err.Name)
+		contents += tabtabtabtab + fmt.Sprintf("event.set(result.%s)\n", err.Name)
+		contents += tabtabtabtab + fmt.Sprintf("return\n")
 	}
 	if method.ReturnType == nil {
 		contents += tabtabtab + "return\n"
 	} else {
 		contents += tabtabtab + "if result.success is not None:\n"
-		contents += tabtabtabtab + "return result.success\n"
+		contents += tabtabtabtab + fmt.Sprintf("event.set(result.success)\n")
+		contents += tabtabtabtab + "return\n"
 		contents += tabtabtab + fmt.Sprintf(
 			"raise TApplicationException(TApplicationException.MISSING_RESULT, \"%s failed: unknown result\")\n", method.Name)
 	}

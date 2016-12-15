@@ -8,8 +8,9 @@
 
 from datetime import timedelta
 from threading import Lock
-import gevent
+
 from gevent.event import AsyncResult
+from gevent import Timeout
 
 from frugal.exceptions import FApplicationException
 from frugal.exceptions import FMessageSizeException
@@ -81,16 +82,12 @@ class Client(Iface):
         return self._methods['buyAlbum']([ctx, ASIN, acct])
 
     def _buyAlbum(self, ctx, ASIN, acct):
-        print('buying album')
         event = AsyncResult()
         self._transport.register(ctx, self._recv_buyAlbum(ctx, event))
         try:
-            print('getting result')
             self._send_buyAlbum(ctx, ASIN, acct)
-            result = event.get()
-            print('result=', result)
-        except Exception as e:
-            print('Exception=', e)
+            result = event.get(timeout=ctx.timeout/1000)
+        except Timeout:
             raise FTimeoutException('buyAlbum timed out after {} milliseconds'.format(ctx.timeout))
         finally:
             self._transport.unregister(ctx)
@@ -110,7 +107,6 @@ class Client(Iface):
 
     def _recv_buyAlbum(self, ctx, event):
         def buyAlbum_callback(transport):
-            print('receiving buy album')
             iprot = self._protocol_factory.get_protocol(transport)
             iprot.read_response_headers(ctx)
             _, mtype, _ = iprot.readMessageBegin()
@@ -133,7 +129,6 @@ class Client(Iface):
                 event.set(result.error)
                 return
             if result.success is not None:
-                print ('f_store: _recv_buyAlbum - result=', result)
                 event.set(result.success)
                 return
             raise TApplicationException(TApplicationException.MISSING_RESULT, "buyAlbum failed: unknown result")
@@ -149,10 +144,12 @@ class Client(Iface):
         return self._methods['enterAlbumGiveaway']([ctx, email, name])
 
     def _enterAlbumGiveaway(self, ctx, email, name):
-        self._transport.register(ctx, self._recv_enterAlbumGiveaway(ctx))
+        event = AsyncResult()
+        self._transport.register(ctx, self._recv_enterAlbumGiveaway(ctx, event))
         try:
-            result = self._send_enterAlbumGiveaway(ctx, email, name)
-        except Exception:
+            self._send_enterAlbumGiveaway(ctx, email, name)
+            result = event.get(timeout=ctx.timeout/1000)
+        except Timeout:
             raise FTimeoutException('enterAlbumGiveaway timed out after {} milliseconds'.format(ctx.timeout))
         finally:
             self._transport.unregister(ctx)
@@ -170,7 +167,7 @@ class Client(Iface):
         oprot.writeMessageEnd()
         self._transport.send(buffer.getvalue())
 
-    def _recv_enterAlbumGiveaway(self, ctx):
+    def _recv_enterAlbumGiveaway(self, ctx, event):
         def enterAlbumGiveaway_callback(transport):
             iprot = self._protocol_factory.get_protocol(transport)
             iprot.read_response_headers(ctx)
@@ -180,15 +177,19 @@ class Client(Iface):
                 x.read(iprot)
                 iprot.readMessageEnd()
                 if x.type == FApplicationException.RESPONSE_TOO_LARGE:
-                    return FMessageSizeException.response(x.message)
+                    event.set(FMessageSizeException.response(x.message))
+                    return
                 if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:
-                    return FRateLimitException(x.message)
-                return x
+                    event.set(FRateLimitException.response(x.message))
+                    return
+                event.set(x)
+                return
             result = enterAlbumGiveaway_result()
             result.read(iprot)
             iprot.readMessageEnd()
             if result.success is not None:
-                return result.success
+                event.set(result.success)
+                return
             raise TApplicationException(TApplicationException.MISSING_RESULT, "enterAlbumGiveaway failed: unknown result")
         return enterAlbumGiveaway_callback
 
