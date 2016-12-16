@@ -74,6 +74,8 @@ class FNatsServer(FServer):
         except Exception:
             return
 
+        # A length of 4 means it was a one-way and does not have a response to
+        # publish
         if len(otrans) == 4:
             return
 
