@@ -1,2 +1,2 @@
 gevent==1.1.2
-pip install git+ssh://git@github.com/Workiva/gevent-nats.git
+git+ssh://git@github.com/Workiva/gevent-nats.git
