@@ -5,7 +5,7 @@ import unittest
 
 from gnats.client.client import Subscription
 
-from frugal.gevent.server import FNatsGeventServer
+from frugal.gevent.server import FNatsServer
 
 
 class testFNatsGeventServer(unittest.TestCase):
@@ -19,7 +19,7 @@ class testFNatsGeventServer(unittest.TestCase):
         self.mock_transport_factory = mock.Mock()
         self.mock_prot_factory = mock.Mock()
 
-        self.server = FNatsGeventServer(
+        self.server = FNatsServer(
             self.mock_nats_client,
             self.subject,
             self.mock_processor,
@@ -32,7 +32,8 @@ class testFNatsGeventServer(unittest.TestCase):
         sub = Subscription(sid=123, subject='foo')
         self.mock_nats_client.subscribe.return_value = sub
 
-        with mock.patch("frugal.gevent.server.nats_server.Event"):
+        with mock.patch("frugal.gevent.server.nats_server.Event") as m:
+            self.server.blocking_event = m
             self.server.serve()
 
         self.assertEquals([sub], self.server._subs)
@@ -56,7 +57,7 @@ class testFNatsGeventServer(unittest.TestCase):
         assert not self.server._oprot_factory.get_protocol.called
         assert not self.server._processor.process.called
 
-    @mock.patch('frugal.gevent.server.nats_server._NATS_MAX_MESSAGE_SIZE', 6)
+    @mock.patch('frugal.server.server._NATS_MAX_MESSAGE_SIZE', 6)
     def test_on_message_callback_bad_framesize_returns_early(self):
         data = b'asdf'
         frame_size = struct.pack('!I', len(data))

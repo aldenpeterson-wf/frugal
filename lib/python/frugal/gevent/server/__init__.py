@@ -1,5 +1,5 @@
-from frugal.gevent.server.nats_server import FNatsGeventServer
+from frugal.gevent.server.nats_server import FNatsServer
 
 __all__ = [
-    'FNatsGeventServer',
+    'FNatsServer',
 ]
