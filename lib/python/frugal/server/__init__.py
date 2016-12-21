@@ -1,4 +1,4 @@
-from .server import FServer
+from .server import FServer, FNatsBaseServer
 from .simple_server import FSimpleServer
 
 __all__ = [
