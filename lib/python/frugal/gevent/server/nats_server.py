@@ -7,7 +7,7 @@ from thrift.Thrift import TApplicationException
 from thrift.transport.TTransport import TMemoryBuffer
 
 from frugal import _NATS_MAX_MESSAGE_SIZE
-from frugal.server import FServer
+from frugal.server import FNatsBaseServer
 from frugal.transport import TMemoryOutputBuffer
 
 logger = logging.getLogger(__name__)
