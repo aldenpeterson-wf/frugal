@@ -13,7 +13,7 @@ from frugal.transport import TMemoryOutputBuffer
 logger = logging.getLogger(__name__)
 
 
-class FNatsGeventServer(FServer):
+class FNatsServer(FNatsBaseServer):
     """An implementation of FServer which uses NATS as the underlying transport.
     Clients must connect with the FNatsTransport"""
 
@@ -23,9 +23,10 @@ class FNatsGeventServer(FServer):
 
         Args:
             nats_client: connected instance of gnats.Client
-            subject: subject to listen on
+            subjects: subject or list of subjects to listen on
             processor: FProcess
             protocol_factory: FProtocolFactory
+            queue: Nats queue group
         """
         self._nats_client = nats_client
         self._subjects = [subjects] if isinstance(subjects, basestring) \
@@ -35,6 +36,8 @@ class FNatsGeventServer(FServer):
         self._oprot_factory = protocol_factory
         self._queue = queue
         self._subs = []
+
+        self.blocking_event = Event()
 
     def serve(self):
         """Subscribe to provided subject and listen on provided queue"""
@@ -50,14 +53,15 @@ class FNatsGeventServer(FServer):
         ]
 
         logger.info("Frugal server running...")
-        blocking_event = Event()
-        blocking_event.wait()
+
+        self.blocking_event.wait()
 
     def stop(self):
         """Unsubscribe from server subject"""
         logger.debug("Frugal server stopping...")
         for sid in self._sub_ids:
             self._nats_client.unsubscribe(sid)
+        self.blocking_event.set()
 
     def _on_message_callback(self, msg):
         """Process and respond to server request on server subject
@@ -65,15 +69,10 @@ class FNatsGeventServer(FServer):
         Args:
             msg: request message published to server subject
         """
-        reply_to = msg.reply
-        if not reply_to:
-            logger.warn("Discarding invalid NATS request (no reply)")
+        if not self._validate_nats_message(msg):
             return
 
-        frame_size = struct.unpack('!I', msg.data[:4])[0]
-        if frame_size > _NATS_MAX_MESSAGE_SIZE - 4:
-            logger.warning("Invalid frame size, dropping message.")
-            return
+        reply_to = msg.reply
 
         # Read and process frame (exclude first 4 bytes which
         # represent frame size).
@@ -88,11 +87,10 @@ class FNatsGeventServer(FServer):
         except TApplicationException:
             # Continue so the exception is sent to the client
             pass
-        except Exception as e:
-            print(e)
+        except Exception:
             return
 
-        if len(otrans) == 4:
+        if self._is_message_oneway(otrans):
             return
 
         self._nats_client.publish(reply_to, otrans.getvalue())

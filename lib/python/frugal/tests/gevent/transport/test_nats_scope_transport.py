@@ -5,6 +5,7 @@ import unittest
 from thrift.transport.TTransport import TTransportException
 
 from gnats.client.client import Subscription
+from gnats.client.errors import ErrConnectionClosed, ErrTimeout, ErrMaxPayload
 
 from frugal.exceptions import FMessageSizeException
 from frugal.gevent.transport import FNatsPublisherTranpsort
@@ -35,6 +36,7 @@ class TestFNatsScopeTransport(unittest.TestCase):
             cb=mock.ANY,
         )
         self.assertEqual(self.subscriber_transport._sub, sub)
+        self.nats_client.flush.assert_called_once_with()
 
     def test_open_throws_exception_if_nats_not_connected(self):
         self.nats_client.is_connected = False
@@ -53,7 +55,7 @@ class TestFNatsScopeTransport(unittest.TestCase):
 
         self.subscriber_transport.subscribe('foo', None)
 
-        self.nats_client.subscribe_async.assert_called()
+        self.assertTrue(self.nats_client.subscribe.called)
         self.assertTrue(self.subscriber_transport.is_subscribed())
 
     def test_publish_throws_if_max_message_size_exceeded(self):
@@ -75,6 +77,38 @@ class TestFNatsScopeTransport(unittest.TestCase):
 
         self.assertEquals(TTransportException.NOT_OPEN, cm.exception.type)
         self.assertEquals("Nats not connected!", cm.exception.message)
+
+    def test_publisher_raises_exception_on_nats_publish_error(self):
+        def nats_publish_raise_maxpayload(topic, data):
+            raise ErrMaxPayload()
+
+        def nats_publish_raise_connection_closed(topic, data):
+            raise ErrConnectionClosed()
+
+        self.nats_client.publish = nats_publish_raise_maxpayload
+        with self.assertRaises(TTransportException):
+            self.publisher_transport.publish('foo', 'bar')
+
+        self.nats_client.publish = nats_publish_raise_connection_closed
+        with self.assertRaises(TTransportException):
+            self.publisher_transport.publish('foo', 'bar')
+
+    def test_publish_raises_exception_if_nats_flush_fails(self):
+
+        def nats_flush_raise_closed():
+            raise ErrConnectionClosed()
+
+        def nats_flush_raise_timeout():
+            raise ErrTimeout()
+
+        self.nats_client.flush = nats_flush_raise_closed
+
+        with self.assertRaises(TTransportException):
+            self.subscriber_transport.subscribe('foo', None)
+
+        self.nats_client.flush = nats_flush_raise_timeout
+        with self.assertRaises(TTransportException):
+            self.subscriber_transport.subscribe('bar', None)
 
     def test_flush_publishes_to_formatted_subject(self):
         self.nats_client.is_connected = True

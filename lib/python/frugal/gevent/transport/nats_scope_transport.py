@@ -1,14 +1,16 @@
 import logging
-
 import gevent
+
+from gnats.client.errors import ErrConnectionClosed, ErrTimeout, ErrMaxPayload
+
 from thrift.transport.TTransport import TTransportException, TMemoryBuffer
 
 from frugal import _NATS_MAX_MESSAGE_SIZE
+from frugal.exceptions import FMessageSizeException
 from frugal.transport import FPublisherTransportFactory
 from frugal.transport import FPublisherTransport
 from frugal.transport import FSubscriberTransportFactory
 from frugal.transport import FSubscriberTransport
-from frugal.exceptions import FMessageSizeException
 
 _FRAME_BUFFER_SIZE = 5
 _FRUGAL_PREFIX = "frugal."
@@ -51,7 +53,13 @@ class FNatsPublisherTranpsort(FPublisherTransport):
         if self._check_publish_size(data):
             msg = 'Message exceeds NATS max message size'
             raise FMessageSizeException.request(msg)
-        self._nats_client.publish('frugal.{0}'.format(topic), data)
+        try:
+            self._nats_client.publish('frugal.{0}'.format(topic), data)
+        except (ErrMaxPayload, ErrConnectionClosed) as e:
+            raise TTransportException(
+                TTransportException.UNKNOWN,
+                'Error publishing to nats: {e}'.format(e=e))
+
 
 
 class FNatsSubscriberTransportFactory(FSubscriberTransportFactory):
@@ -77,7 +85,7 @@ class FNatsSubscriberTransport(FSubscriberTransport):
             raise TTransportException(TTransportException.NOT_OPEN, msg)
 
         if self.is_subscribed():
-            msg = "Already subscribed to nats topic!"
+            msg = 'Already subscribed to nats topic!'
             raise TTransportException(TTransportException.ALREADY_OPEN, msg)
 
         self._sub = self._nats_client.subscribe(
@@ -85,6 +93,12 @@ class FNatsSubscriberTransport(FSubscriberTransport):
             queue=self._queue,
             cb=lambda message: callback(TMemoryBuffer(message.data[4:]))
         )
+        try:
+            self._nats_client.flush()
+        except (ErrConnectionClosed, ErrTimeout) as e:
+            raise TTransportException(
+                TTransportException.UNKNOWN,
+                'Error flushing nats during subscribe: {e}'.format(e=e))
         self._is_subscribed = True
 
 

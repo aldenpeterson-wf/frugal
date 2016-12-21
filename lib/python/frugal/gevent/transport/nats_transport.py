@@ -1,6 +1,8 @@
+from gnats.client.errors import ErrConnectionClosed, ErrMaxPayload
 from gnats.client.utils import new_inbox
+
 from thrift.transport.TTransport import TTransportException
-import gevent
+
 from frugal.gevent.transport import FGeventTransport
 
 _NOT_OPEN = 'NATS not connected.'
@@ -64,5 +66,10 @@ class FNatsTransport(FGeventTransport):
 
         subject = self._subject
         inbox = self._inbox
-        self._nats_client.publish(subject, data, reply=inbox)
 
+        try:
+            self._nats_client.publish(subject, data, reply=inbox)
+        except (ErrMaxPayload, ErrConnectionClosed) as e:
+            raise TTransportException(
+                TTransportException.UNKNOWN,
+                'Error publishing to nats: {e}'.format(e=e))
