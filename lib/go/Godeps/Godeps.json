@@ -11,8 +11,8 @@
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.9.0",
-			"Rev": "be52937128b38f1d99787bb476c789e2af1147f1"
+			"Comment": "v0.11.0",
+			"Rev": "d26492970760ca5d33129d2d799e34be5c4782eb"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
