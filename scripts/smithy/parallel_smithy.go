@@ -10,8 +10,7 @@ import (
 )
 
 func main(){
-	log.SetOutput(os.Stdout)
-
+	log.SetFormatter(&log.TextFormatter{ForceColors: true})
 	testScriptDir := "scripts/smithy/"
 	// For new/removed files, update smithy.yaml to no longer print
 	testScripts := []string{"smithy_dart.sh", "smithy_go.sh", "smithy_java.sh", "smithy_generator.sh", "smithy_python.sh"}
