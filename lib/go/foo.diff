@@ -1,0 +1,851 @@
+diff --git a/lib/go/Godeps/Godeps.json b/lib/go/Godeps/Godeps.json
+index 9c58f06..df4b4a3 100644
+--- a/lib/go/Godeps/Godeps.json
++++ b/lib/go/Godeps/Godeps.json
+@@ -11,8 +11,8 @@
+ 		},
+ 		{
+ 			"ImportPath": "github.com/Sirupsen/logrus",
+-			"Comment": "v0.8.7",
+-			"Rev": "418b41d23a1bf978c06faea5313ba194650ac088"
++			"Comment": "v0.9.0",
++			"Rev": "be52937128b38f1d99787bb476c789e2af1147f1"
+ 		},
+ 		{
+ 			"ImportPath": "github.com/davecgh/go-spew/spew",
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/.travis.yml b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/.travis.yml
+index 2d8c086..ff23150 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/.travis.yml
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/.travis.yml
+@@ -1,8 +1,9 @@
+ language: go
+ go:
+-  - 1.2
+   - 1.3
+   - 1.4
++  - 1.5
+   - tip
+ install:
+   - go get -t ./...
++script: GOMAXPROCS=4 GORACE="halt_on_error=1" go test -race -v ./...
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/CHANGELOG.md b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/CHANGELOG.md
+index 78f9895..9e9e600 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/CHANGELOG.md
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/CHANGELOG.md
+@@ -1,3 +1,15 @@
++# 0.9.0
++
++* logrus/text_formatter: don't emit empty msg
++* logrus/hooks/airbrake: move out of main repository
++* logrus/hooks/sentry: move out of main repository
++* logrus/hooks/papertrail: move out of main repository
++* logrus/hooks/bugsnag: move out of main repository
++* logrus/core: run tests with `-race`
++* logrus/core: detect TTY based on `stderr`
++* logrus/core: support `WithError` on logger
++* logrus/core: Solaris support
++
+ # 0.8.7
+ 
+ * logrus/core: fix possible race (#216)
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/README.md b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/README.md
+index 6fa6e20..f8720c9 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/README.md
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/README.md
+@@ -75,17 +75,12 @@ package main
+ import (
+   "os"
+   log "github.com/Sirupsen/logrus"
+-  "github.com/Sirupsen/logrus/hooks/airbrake"
+ )
+ 
+ func init() {
+   // Log as JSON instead of the default ASCII formatter.
+   log.SetFormatter(&log.JSONFormatter{})
+ 
+-  // Use the Airbrake hook to report errors that have Error severity or above to
+-  // an exception tracker. You can create custom hooks, see the Hooks section.
+-  log.AddHook(airbrake.NewHook("https://example.com", "xyz", "development"))
+-
+   // Output to stderr instead of stdout, could also be a file.
+   log.SetOutput(os.Stderr)
+ 
+@@ -182,13 +177,16 @@ Logrus comes with [built-in hooks](hooks/). Add those, or your custom hook, in
+ ```go
+ import (
+   log "github.com/Sirupsen/logrus"
+-  "github.com/Sirupsen/logrus/hooks/airbrake"
++  "gopkg.in/gemnasium/logrus-airbrake-hook.v2" // the package is named "aibrake"
+   logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
+   "log/syslog"
+ )
+ 
+ func init() {
+-  log.AddHook(airbrake.NewHook("https://example.com", "xyz", "development"))
++
++  // Use the Airbrake hook to report errors that have Error severity or above to
++  // an exception tracker. You can create custom hooks, see the Hooks section.
++  log.AddHook(airbrake.NewHook(123, "xyz", "production"))
+ 
+   hook, err := logrus_syslog.NewSyslogHook("udp", "localhost:514", syslog.LOG_INFO, "")
+   if err != nil {
+@@ -198,20 +196,21 @@ func init() {
+   }
+ }
+ ```
+-
++Note: Syslog hook also support connecting to local syslog (Ex. "/dev/log" or "/var/run/syslog" or "/var/run/log"). For the detail, please check the [syslog hook README](hooks/syslog/README.md).
+ 
+ | Hook  | Description |
+ | ----- | ----------- |
+-| [Airbrake](https://github.com/Sirupsen/logrus/blob/master/hooks/airbrake/airbrake.go) | Send errors to an exception tracking service compatible with the Airbrake API. Uses [`airbrake-go`](https://github.com/tobi/airbrake-go) behind the scenes. |
+-| [Papertrail](https://github.com/Sirupsen/logrus/blob/master/hooks/papertrail/papertrail.go) | Send errors to the Papertrail hosted logging service via UDP. |
++| [Airbrake](https://github.com/gemnasium/logrus-airbrake-hook) | Send errors to the Airbrake API V3. Uses the official [`gobrake`](https://github.com/airbrake/gobrake) behind the scenes. |
++| [Airbrake "legacy"](https://github.com/gemnasium/logrus-airbrake-legacy-hook) | Send errors to an exception tracking service compatible with the Airbrake API V2. Uses [`airbrake-go`](https://github.com/tobi/airbrake-go) behind the scenes. |
++| [Papertrail](https://github.com/polds/logrus-papertrail-hook) | Send errors to the [Papertrail](https://papertrailapp.com) hosted logging service via UDP. |
+ | [Syslog](https://github.com/Sirupsen/logrus/blob/master/hooks/syslog/syslog.go) | Send errors to remote syslog server. Uses standard library `log/syslog` behind the scenes. |
+-| [BugSnag](https://github.com/Sirupsen/logrus/blob/master/hooks/bugsnag/bugsnag.go) | Send errors to the Bugsnag exception tracking service. |
+-| [Sentry](https://github.com/Sirupsen/logrus/blob/master/hooks/sentry/sentry.go) | Send errors to the Sentry error logging and aggregation service. |
++| [Bugsnag](https://github.com/Shopify/logrus-bugsnag/blob/master/bugsnag.go) | Send errors to the Bugsnag exception tracking service. |
++| [Sentry](https://github.com/evalphobia/logrus_sentry) | Send errors to the Sentry error logging and aggregation service. |
+ | [Hiprus](https://github.com/nubo/hiprus) | Send errors to a channel in hipchat. |
+ | [Logrusly](https://github.com/sebest/logrusly) | Send logs to [Loggly](https://www.loggly.com/) |
+ | [Slackrus](https://github.com/johntdyer/slackrus) | Hook for Slack chat. |
+ | [Journalhook](https://github.com/wercker/journalhook) | Hook for logging to `systemd-journald` |
+-| [Graylog](https://github.com/gemnasium/logrus-hooks/tree/master/graylog) | Hook for logging to [Graylog](http://graylog2.org/) |
++| [Graylog](https://github.com/gemnasium/logrus-graylog-hook) | Hook for logging to [Graylog](http://graylog2.org/) |
+ | [Raygun](https://github.com/squirkle/logrus-raygun-hook) | Hook for logging to [Raygun.io](http://raygun.io/) |
+ | [LFShook](https://github.com/rifflock/lfshook) | Hook for logging to the local filesystem |
+ | [Honeybadger](https://github.com/agonzalezro/logrus_honeybadger) | Hook for sending exceptions to Honeybadger |
+@@ -219,6 +218,10 @@ func init() {
+ | [Rollrus](https://github.com/heroku/rollrus) | Hook for sending errors to rollbar |
+ | [Fluentd](https://github.com/evalphobia/logrus_fluent) | Hook for logging to fluentd |
+ | [Mongodb](https://github.com/weekface/mgorus) | Hook for logging to mongodb |
++| [InfluxDB](https://github.com/Abramovic/logrus_influxdb) | Hook for logging to influxdb |
++| [Octokit](https://github.com/dorajistyle/logrus-octokit-hook) | Hook for logging to github via octokit |
++| [DeferPanic](https://github.com/deferpanic/dp-logrus) | Hook for logging to DeferPanic |
++| [Redis-Hook](https://github.com/rogierlommers/logrus-redis-hook) | Hook for logging to a ELK stack (through Redis) |
+ 
+ #### Level logging
+ 
+@@ -296,15 +299,16 @@ The built-in logging formatters are:
+     field to `true`.  To force no colored output even if there is a TTY  set the
+     `DisableColors` field to `true`
+ * `logrus.JSONFormatter`. Logs fields as JSON.
+-* `logrus_logstash.LogstashFormatter`. Logs fields as Logstash Events (http://logstash.net).
++* `logrus/formatters/logstash.LogstashFormatter`. Logs fields as [Logstash](http://logstash.net) Events.
+ 
+     ```go
+-      logrus.SetFormatter(&logrus_logstash.LogstashFormatter{Type: “application_name"})
++      logrus.SetFormatter(&logstash.LogstashFormatter{Type: "application_name"})
+     ```
+ 
+ Third party logging formatters:
+ 
+-* [`zalgo`](https://github.com/aybabtme/logzalgo): invoking the P͉̫o̳̼̊w̖͈̰͎e̬͔̭͂r͚̼̹̲ ̫͓͉̳͈ō̠͕͖̚f̝͍̠ ͕̲̞͖͑Z̖̫̤̫ͪa͉̬͈̗l͖͎g̳̥o̰̥̅!̣͔̲̻͊̄ ̙̘̦̹̦.
++* [`prefixed`](https://github.com/x-cray/logrus-prefixed-formatter). Displays log entry source along with alternative layout.
++* [`zalgo`](https://github.com/aybabtme/logzalgo). Invoking the P͉̫o̳̼̊w̖͈̰͎e̬͔̭͂r͚̼̹̲ ̫͓͉̳͈ō̠͕͖̚f̝͍̠ ͕̲̞͖͑Z̖̫̤̫ͪa͉̬͈̗l͖͎g̳̥o̰̥̅!̣͔̲̻͊̄ ̙̘̦̹̦.
+ 
+ You can define your formatter by implementing the `Formatter` interface,
+ requiring a `Format` method. `Format` takes an `*Entry`. `entry.Data` is a
+@@ -353,5 +357,10 @@ Log rotation is not provided with Logrus. Log rotation should be done by an
+ external program (like `logrotate(8)`) that can compress and delete old log
+ entries. It should not be a feature of the application-level logger.
+ 
++#### Tools
++
++| Tool | Description |
++| ---- | ----------- |
++|[Logrus Mate](https://github.com/gogap/logrus_mate)|Logrus mate is a tool for Logrus to manage loggers, you can initial logger's level, hook and formatter by config file, the logger will generated with different config at different environment.|
+ 
+ [godoc]: https://godoc.org/github.com/Sirupsen/logrus
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/examples/hook/hook.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/examples/hook/hook.go
+index cb5759a..3187f6d 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/examples/hook/hook.go
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/examples/hook/hook.go
+@@ -2,14 +2,14 @@ package main
+ 
+ import (
+ 	"github.com/Sirupsen/logrus"
+-	"github.com/Sirupsen/logrus/hooks/airbrake"
++	"gopkg.in/gemnasium/logrus-airbrake-hook.v2"
+ )
+ 
+ var log = logrus.New()
+ 
+ func init() {
+ 	log.Formatter = new(logrus.TextFormatter) // default
+-	log.Hooks.Add(airbrake.NewHook("https://example.com", "xyz", "development"))
++	log.Hooks.Add(airbrake.NewHook(123, "xyz", "development"))
+ }
+ 
+ func main() {
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/formatters/logstash/logstash.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/formatters/logstash/logstash.go
+index 8ea93dd..aad646a 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/formatters/logstash/logstash.go
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/formatters/logstash/logstash.go
+@@ -17,38 +17,43 @@ type LogstashFormatter struct {
+ }
+ 
+ func (f *LogstashFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+-	entry.Data["@version"] = 1
++	fields := make(logrus.Fields)
++	for k, v := range entry.Data {
++		fields[k] = v
++	}
++
++	fields["@version"] = 1
+ 
+ 	if f.TimestampFormat == "" {
+ 		f.TimestampFormat = logrus.DefaultTimestampFormat
+ 	}
+ 
+-	entry.Data["@timestamp"] = entry.Time.Format(f.TimestampFormat)
++	fields["@timestamp"] = entry.Time.Format(f.TimestampFormat)
+ 
+ 	// set message field
+ 	v, ok := entry.Data["message"]
+ 	if ok {
+-		entry.Data["fields.message"] = v
++		fields["fields.message"] = v
+ 	}
+-	entry.Data["message"] = entry.Message
++	fields["message"] = entry.Message
+ 
+ 	// set level field
+ 	v, ok = entry.Data["level"]
+ 	if ok {
+-		entry.Data["fields.level"] = v
++		fields["fields.level"] = v
+ 	}
+-	entry.Data["level"] = entry.Level.String()
++	fields["level"] = entry.Level.String()
+ 
+ 	// set type field
+ 	if f.Type != "" {
+ 		v, ok = entry.Data["type"]
+ 		if ok {
+-			entry.Data["fields.type"] = v
++			fields["fields.type"] = v
+ 		}
+-		entry.Data["type"] = f.Type
++		fields["type"] = f.Type
+ 	}
+ 
+-	serialized, err := json.Marshal(entry.Data)
++	serialized, err := json.Marshal(fields)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("Failed to marshal fields to JSON, %v", err)
+ 	}
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/airbrake/airbrake.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/airbrake/airbrake.go
+deleted file mode 100644
+index b0502c3..0000000
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/airbrake/airbrake.go
++++ /dev/null
+@@ -1,54 +0,0 @@
+-package airbrake
+-
+-import (
+-	"errors"
+-	"fmt"
+-
+-	"github.com/Sirupsen/logrus"
+-	"github.com/tobi/airbrake-go"
+-)
+-
+-// AirbrakeHook to send exceptions to an exception-tracking service compatible
+-// with the Airbrake API.
+-type airbrakeHook struct {
+-	APIKey      string
+-	Endpoint    string
+-	Environment string
+-}
+-
+-func NewHook(endpoint, apiKey, env string) *airbrakeHook {
+-	return &airbrakeHook{
+-		APIKey:      apiKey,
+-		Endpoint:    endpoint,
+-		Environment: env,
+-	}
+-}
+-
+-func (hook *airbrakeHook) Fire(entry *logrus.Entry) error {
+-	airbrake.ApiKey = hook.APIKey
+-	airbrake.Endpoint = hook.Endpoint
+-	airbrake.Environment = hook.Environment
+-
+-	var notifyErr error
+-	err, ok := entry.Data["error"].(error)
+-	if ok {
+-		notifyErr = err
+-	} else {
+-		notifyErr = errors.New(entry.Message)
+-	}
+-
+-	airErr := airbrake.Notify(notifyErr)
+-	if airErr != nil {
+-		return fmt.Errorf("Failed to send error to Airbrake: %s", airErr)
+-	}
+-
+-	return nil
+-}
+-
+-func (hook *airbrakeHook) Levels() []logrus.Level {
+-	return []logrus.Level{
+-		logrus.ErrorLevel,
+-		logrus.FatalLevel,
+-		logrus.PanicLevel,
+-	}
+-}
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/bugsnag/bugsnag.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/bugsnag/bugsnag.go
+deleted file mode 100644
+index d20a0f5..0000000
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/bugsnag/bugsnag.go
++++ /dev/null
+@@ -1,68 +0,0 @@
+-package logrus_bugsnag
+-
+-import (
+-	"errors"
+-
+-	"github.com/Sirupsen/logrus"
+-	"github.com/bugsnag/bugsnag-go"
+-)
+-
+-type bugsnagHook struct{}
+-
+-// ErrBugsnagUnconfigured is returned if NewBugsnagHook is called before
+-// bugsnag.Configure. Bugsnag must be configured before the hook.
+-var ErrBugsnagUnconfigured = errors.New("bugsnag must be configured before installing this logrus hook")
+-
+-// ErrBugsnagSendFailed indicates that the hook failed to submit an error to
+-// bugsnag. The error was successfully generated, but `bugsnag.Notify()`
+-// failed.
+-type ErrBugsnagSendFailed struct {
+-	err error
+-}
+-
+-func (e ErrBugsnagSendFailed) Error() string {
+-	return "failed to send error to Bugsnag: " + e.err.Error()
+-}
+-
+-// NewBugsnagHook initializes a logrus hook which sends exceptions to an
+-// exception-tracking service compatible with the Bugsnag API. Before using
+-// this hook, you must call bugsnag.Configure(). The returned object should be
+-// registered with a log via `AddHook()`
+-//
+-// Entries that trigger an Error, Fatal or Panic should now include an "error"
+-// field to send to Bugsnag.
+-func NewBugsnagHook() (*bugsnagHook, error) {
+-	if bugsnag.Config.APIKey == "" {
+-		return nil, ErrBugsnagUnconfigured
+-	}
+-	return &bugsnagHook{}, nil
+-}
+-
+-// Fire forwards an error to Bugsnag. Given a logrus.Entry, it extracts the
+-// "error" field (or the Message if the error isn't present) and sends it off.
+-func (hook *bugsnagHook) Fire(entry *logrus.Entry) error {
+-	var notifyErr error
+-	err, ok := entry.Data["error"].(error)
+-	if ok {
+-		notifyErr = err
+-	} else {
+-		notifyErr = errors.New(entry.Message)
+-	}
+-
+-	bugsnagErr := bugsnag.Notify(notifyErr)
+-	if bugsnagErr != nil {
+-		return ErrBugsnagSendFailed{bugsnagErr}
+-	}
+-
+-	return nil
+-}
+-
+-// Levels enumerates the log levels on which the error should be forwarded to
+-// bugsnag: everything at or above the "Error" level.
+-func (hook *bugsnagHook) Levels() []logrus.Level {
+-	return []logrus.Level{
+-		logrus.ErrorLevel,
+-		logrus.FatalLevel,
+-		logrus.PanicLevel,
+-	}
+-}
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/papertrail/README.md b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/papertrail/README.md
+deleted file mode 100644
+index ae61e92..0000000
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/papertrail/README.md
++++ /dev/null
+@@ -1,28 +0,0 @@
+-# Papertrail Hook for Logrus <img src="http://i.imgur.com/hTeVwmJ.png" width="40" height="40" alt=":walrus:" class="emoji" title=":walrus:" />
+-
+-[Papertrail](https://papertrailapp.com) provides hosted log management. Once stored in Papertrail, you can [group](http://help.papertrailapp.com/kb/how-it-works/groups/) your logs on various dimensions, [search](http://help.papertrailapp.com/kb/how-it-works/search-syntax) them, and trigger [alerts](http://help.papertrailapp.com/kb/how-it-works/alerts).
+-
+-In most deployments, you'll want to send logs to Papertrail via their [remote_syslog](http://help.papertrailapp.com/kb/configuration/configuring-centralized-logging-from-text-log-files-in-unix/) daemon, which requires no application-specific configuration. This hook is intended for relatively low-volume logging, likely in managed cloud hosting deployments where installing `remote_syslog` is not possible.
+-
+-## Usage
+-
+-You can find your Papertrail UDP port on your [Papertrail account page](https://papertrailapp.com/account/destinations). Substitute it below for `YOUR_PAPERTRAIL_UDP_PORT`.
+-
+-For `YOUR_APP_NAME`, substitute a short string that will readily identify your application or service in the logs.
+-
+-```go
+-import (
+-  "log/syslog"
+-  "github.com/Sirupsen/logrus"
+-  "github.com/Sirupsen/logrus/hooks/papertrail"
+-)
+-
+-func main() {
+-  log       := logrus.New()
+-  hook, err := logrus_papertrail.NewPapertrailHook("logs.papertrailapp.com", YOUR_PAPERTRAIL_UDP_PORT, YOUR_APP_NAME)
+-
+-  if err == nil {
+-    log.Hooks.Add(hook)
+-  }
+-}
+-```
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/papertrail/papertrail.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/papertrail/papertrail.go
+deleted file mode 100644
+index c0f10c1..0000000
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/papertrail/papertrail.go
++++ /dev/null
+@@ -1,55 +0,0 @@
+-package logrus_papertrail
+-
+-import (
+-	"fmt"
+-	"net"
+-	"os"
+-	"time"
+-
+-	"github.com/Sirupsen/logrus"
+-)
+-
+-const (
+-	format = "Jan 2 15:04:05"
+-)
+-
+-// PapertrailHook to send logs to a logging service compatible with the Papertrail API.
+-type PapertrailHook struct {
+-	Host    string
+-	Port    int
+-	AppName string
+-	UDPConn net.Conn
+-}
+-
+-// NewPapertrailHook creates a hook to be added to an instance of logger.
+-func NewPapertrailHook(host string, port int, appName string) (*PapertrailHook, error) {
+-	conn, err := net.Dial("udp", fmt.Sprintf("%s:%d", host, port))
+-	return &PapertrailHook{host, port, appName, conn}, err
+-}
+-
+-// Fire is called when a log event is fired.
+-func (hook *PapertrailHook) Fire(entry *logrus.Entry) error {
+-	date := time.Now().Format(format)
+-	msg, _ := entry.String()
+-	payload := fmt.Sprintf("<22> %s %s: %s", date, hook.AppName, msg)
+-
+-	bytesWritten, err := hook.UDPConn.Write([]byte(payload))
+-	if err != nil {
+-		fmt.Fprintf(os.Stderr, "Unable to send log line to Papertrail via UDP. Wrote %d bytes before error: %v", bytesWritten, err)
+-		return err
+-	}
+-
+-	return nil
+-}
+-
+-// Levels returns the available logging levels.
+-func (hook *PapertrailHook) Levels() []logrus.Level {
+-	return []logrus.Level{
+-		logrus.PanicLevel,
+-		logrus.FatalLevel,
+-		logrus.ErrorLevel,
+-		logrus.WarnLevel,
+-		logrus.InfoLevel,
+-		logrus.DebugLevel,
+-	}
+-}
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/sentry/README.md b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/sentry/README.md
+deleted file mode 100644
+index 31de654..0000000
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/sentry/README.md
++++ /dev/null
+@@ -1,111 +0,0 @@
+-# Sentry Hook for Logrus <img src="http://i.imgur.com/hTeVwmJ.png" width="40" height="40" alt=":walrus:" class="emoji" title=":walrus:" />
+-
+-[Sentry](https://getsentry.com) provides both self-hosted and hosted
+-solutions for exception tracking.
+-Both client and server are
+-[open source](https://github.com/getsentry/sentry).
+-
+-## Usage
+-
+-Every sentry application defined on the server gets a different
+-[DSN](https://www.getsentry.com/docs/). In the example below replace
+-`YOUR_DSN` with the one created for your application.
+-
+-```go
+-import (
+-  "github.com/Sirupsen/logrus"
+-  "github.com/Sirupsen/logrus/hooks/sentry"
+-)
+-
+-func main() {
+-  log       := logrus.New()
+-  hook, err := logrus_sentry.NewSentryHook(YOUR_DSN, []logrus.Level{
+-    logrus.PanicLevel,
+-    logrus.FatalLevel,
+-    logrus.ErrorLevel,
+-  })
+-
+-  if err == nil {
+-    log.Hooks.Add(hook)
+-  }
+-}
+-```
+-
+-If you wish to initialize a SentryHook with tags, you can use the `NewWithTagsSentryHook` constructor to provide default tags:
+-
+-```go
+-tags := map[string]string{
+-  "site": "example.com",
+-}
+-levels := []logrus.Level{
+-  logrus.PanicLevel,
+-  logrus.FatalLevel,
+-  logrus.ErrorLevel,
+-}
+-hook, err := logrus_sentry.NewWithTagsSentryHook(YOUR_DSN, tags, levels)
+-
+-```
+-
+-If you wish to initialize a SentryHook with an already initialized raven client, you can use 
+-the `NewWithClientSentryHook` constructor:
+-
+-```go
+-import (
+-  "github.com/Sirupsen/logrus"
+-  "github.com/Sirupsen/logrus/hooks/sentry"
+-  "github.com/getsentry/raven-go"
+-)
+-
+-func main() {
+-  log := logrus.New()
+-
+-  client, err := raven.New(YOUR_DSN)
+-  if err != nil {
+-      log.Fatal(err)
+-  }
+-
+-  hook, err := logrus_sentry.NewWithClientSentryHook(client, []logrus.Level{
+-    logrus.PanicLevel,
+-    logrus.FatalLevel,
+-    logrus.ErrorLevel,
+-  })
+-
+-  if err == nil {
+-    log.Hooks.Add(hook)
+-  }
+-}
+-
+-hook, err := NewWithClientSentryHook(client, []logrus.Level{
+-	logrus.ErrorLevel,
+-})
+-```
+-
+-## Special fields
+-
+-Some logrus fields have a special meaning in this hook,
+-these are `server_name`, `logger` and `http_request`.
+-When logs are sent to sentry these fields are treated differently.
+-- `server_name` (also known as hostname) is the name of the server which
+-is logging the event (hostname.example.com)
+-- `logger` is the part of the application which is logging the event.
+-In go this usually means setting it to the name of the package.
+-- `http_request` is the in-coming request(*http.Request). The detailed request data are sent to Sentry.
+-
+-## Timeout
+-
+-`Timeout` is the time the sentry hook will wait for a response
+-from the sentry server.
+-
+-If this time elapses with no response from
+-the server an error will be returned.
+-
+-If `Timeout` is set to 0 the SentryHook will not wait for a reply
+-and will assume a correct delivery.
+-
+-The SentryHook has a default timeout of `100 milliseconds` when created
+-with a call to `NewSentryHook`. This can be changed by assigning a value to the `Timeout` field:
+-
+-```go
+-hook, _ := logrus_sentry.NewSentryHook(...)
+-hook.Timeout = 20*time.Second
+-```
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/sentry/sentry.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/sentry/sentry.go
+deleted file mode 100644
+index cf88098..0000000
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/sentry/sentry.go
++++ /dev/null
+@@ -1,137 +0,0 @@
+-package logrus_sentry
+-
+-import (
+-	"fmt"
+-	"net/http"
+-	"time"
+-
+-	"github.com/Sirupsen/logrus"
+-	"github.com/getsentry/raven-go"
+-)
+-
+-var (
+-	severityMap = map[logrus.Level]raven.Severity{
+-		logrus.DebugLevel: raven.DEBUG,
+-		logrus.InfoLevel:  raven.INFO,
+-		logrus.WarnLevel:  raven.WARNING,
+-		logrus.ErrorLevel: raven.ERROR,
+-		logrus.FatalLevel: raven.FATAL,
+-		logrus.PanicLevel: raven.FATAL,
+-	}
+-)
+-
+-func getAndDel(d logrus.Fields, key string) (string, bool) {
+-	var (
+-		ok  bool
+-		v   interface{}
+-		val string
+-	)
+-	if v, ok = d[key]; !ok {
+-		return "", false
+-	}
+-
+-	if val, ok = v.(string); !ok {
+-		return "", false
+-	}
+-	delete(d, key)
+-	return val, true
+-}
+-
+-func getAndDelRequest(d logrus.Fields, key string) (*http.Request, bool) {
+-	var (
+-		ok  bool
+-		v   interface{}
+-		req *http.Request
+-	)
+-	if v, ok = d[key]; !ok {
+-		return nil, false
+-	}
+-	if req, ok = v.(*http.Request); !ok || req == nil {
+-		return nil, false
+-	}
+-	delete(d, key)
+-	return req, true
+-}
+-
+-// SentryHook delivers logs to a sentry server.
+-type SentryHook struct {
+-	// Timeout sets the time to wait for a delivery error from the sentry server.
+-	// If this is set to zero the server will not wait for any response and will
+-	// consider the message correctly sent
+-	Timeout time.Duration
+-
+-	client *raven.Client
+-	levels []logrus.Level
+-}
+-
+-// NewSentryHook creates a hook to be added to an instance of logger
+-// and initializes the raven client.
+-// This method sets the timeout to 100 milliseconds.
+-func NewSentryHook(DSN string, levels []logrus.Level) (*SentryHook, error) {
+-	client, err := raven.New(DSN)
+-	if err != nil {
+-		return nil, err
+-	}
+-	return &SentryHook{100 * time.Millisecond, client, levels}, nil
+-}
+-
+-// NewWithTagsSentryHook creates a hook with tags to be added to an instance
+-// of logger and initializes the raven client. This method sets the timeout to
+-// 100 milliseconds.
+-func NewWithTagsSentryHook(DSN string, tags map[string]string, levels []logrus.Level) (*SentryHook, error) {
+-	client, err := raven.NewWithTags(DSN, tags)
+-	if err != nil {
+-		return nil, err
+-	}
+-	return &SentryHook{100 * time.Millisecond, client, levels}, nil
+-}
+-
+-// NewWithClientSentryHook creates a hook using an initialized raven client.
+-// This method sets the timeout to 100 milliseconds.
+-func NewWithClientSentryHook(client *raven.Client, levels []logrus.Level) (*SentryHook, error) {
+-	return &SentryHook{100 * time.Millisecond, client, levels}, nil
+-}
+-
+-// Called when an event should be sent to sentry
+-// Special fields that sentry uses to give more information to the server
+-// are extracted from entry.Data (if they are found)
+-// These fields are: logger, server_name and http_request
+-func (hook *SentryHook) Fire(entry *logrus.Entry) error {
+-	packet := &raven.Packet{
+-		Message:   entry.Message,
+-		Timestamp: raven.Timestamp(entry.Time),
+-		Level:     severityMap[entry.Level],
+-		Platform:  "go",
+-	}
+-
+-	d := entry.Data
+-
+-	if logger, ok := getAndDel(d, "logger"); ok {
+-		packet.Logger = logger
+-	}
+-	if serverName, ok := getAndDel(d, "server_name"); ok {
+-		packet.ServerName = serverName
+-	}
+-	if req, ok := getAndDelRequest(d, "http_request"); ok {
+-		packet.Interfaces = append(packet.Interfaces, raven.NewHttp(req))
+-	}
+-	packet.Extra = map[string]interface{}(d)
+-
+-	_, errCh := hook.client.Capture(packet, nil)
+-	timeout := hook.Timeout
+-	if timeout != 0 {
+-		timeoutCh := time.After(timeout)
+-		select {
+-		case err := <-errCh:
+-			return err
+-		case <-timeoutCh:
+-			return fmt.Errorf("no response from sentry server in %s", timeout)
+-		}
+-	}
+-	return nil
+-}
+-
+-// Levels returns the available logging levels.
+-func (hook *SentryHook) Levels() []logrus.Level {
+-	return hook.levels
+-}
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/syslog/README.md b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/syslog/README.md
+index 4dbb8e7..066704b 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/syslog/README.md
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/syslog/README.md
+@@ -18,3 +18,22 @@ func main() {
+   }
+ }
+ ```
++
++If you want to connect to local syslog (Ex. "/dev/log" or "/var/run/syslog" or "/var/run/log"). Just assign empty string to the first two parameters of `NewSyslogHook`. It should look like the following.
++
++```go
++import (
++  "log/syslog"
++  "github.com/Sirupsen/logrus"
++  logrus_syslog "github.com/Sirupsen/logrus/hooks/syslog"
++)
++
++func main() {
++  log       := logrus.New()
++  hook, err := logrus_syslog.NewSyslogHook("", "", syslog.LOG_INFO, "")
++
++  if err == nil {
++    log.Hooks.Add(hook)
++  }
++}
++```
+\ No newline at end of file
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/syslog/syslog.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/syslog/syslog.go
+index b6fa374..c59f331 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/syslog/syslog.go
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/hooks/syslog/syslog.go
+@@ -1,3 +1,5 @@
++// +build !windows,!nacl,!plan9
++
+ package logrus_syslog
+ 
+ import (
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/logger.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/logger.go
+index fd9804c..2fdb231 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/logger.go
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/logger.go
+@@ -64,6 +64,12 @@ func (logger *Logger) WithFields(fields Fields) *Entry {
+ 	return NewEntry(logger).WithFields(fields)
+ }
+ 
++// Add an error as single field to the log entry.  All it does is call
++// `WithError` for the given `error`.
++func (logger *Logger) WithError(err error) *Entry {
++	return NewEntry(logger).WithError(err)
++}
++
+ func (logger *Logger) Debugf(format string, args ...interface{}) {
+ 	if logger.Level >= DebugLevel {
+ 		NewEntry(logger).Debugf(format, args...)
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_notwindows.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_notwindows.go
+index 4bb5376..b343b3a 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_notwindows.go
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_notwindows.go
+@@ -12,9 +12,9 @@ import (
+ 	"unsafe"
+ )
+ 
+-// IsTerminal returns true if the given file descriptor is a terminal.
++// IsTerminal returns true if stderr's file descriptor is a terminal.
+ func IsTerminal() bool {
+-	fd := syscall.Stdout
++	fd := syscall.Stderr
+ 	var termios Termios
+ 	_, _, err := syscall.Syscall6(syscall.SYS_IOCTL, uintptr(fd), ioctlReadTermios, uintptr(unsafe.Pointer(&termios)), 0, 0, 0)
+ 	return err == 0
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_solaris.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_solaris.go
+new file mode 100644
+index 0000000..3e70bf7
+--- /dev/null
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_solaris.go
+@@ -0,0 +1,15 @@
++// +build solaris
++
++package logrus
++
++import (
++	"os"
++
++	"golang.org/x/sys/unix"
++)
++
++// IsTerminal returns true if the given file descriptor is a terminal.
++func IsTerminal() bool {
++	_, err := unix.IoctlGetTermios(int(os.Stdout.Fd()), unix.TCGETA)
++	return err == nil
++}
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_windows.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_windows.go
+index 2e09f6f..0146845 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_windows.go
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/terminal_windows.go
+@@ -18,9 +18,9 @@ var (
+ 	procGetConsoleMode = kernel32.NewProc("GetConsoleMode")
+ )
+ 
+-// IsTerminal returns true if the given file descriptor is a terminal.
++// IsTerminal returns true if stderr's file descriptor is a terminal.
+ func IsTerminal() bool {
+-	fd := syscall.Stdout
++	fd := syscall.Stderr
+ 	var st uint32
+ 	r, _, e := syscall.Syscall(procGetConsoleMode.Addr(), 2, uintptr(fd), uintptr(unsafe.Pointer(&st)), 0)
+ 	return r != 0 && e == 0
+diff --git a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/text_formatter.go b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/text_formatter.go
+index 17cc298..06ef202 100644
+--- a/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/text_formatter.go
++++ b/lib/go/Godeps/_workspace/src/github.com/Sirupsen/logrus/text_formatter.go
+@@ -84,7 +84,9 @@ func (f *TextFormatter) Format(entry *Entry) ([]byte, error) {
+ 			f.appendKeyValue(b, "time", entry.Time.Format(timestampFormat))
+ 		}
+ 		f.appendKeyValue(b, "level", entry.Level.String())
+-		f.appendKeyValue(b, "msg", entry.Message)
++		if entry.Message != "" {
++			f.appendKeyValue(b, "msg", entry.Message)
++		}
+ 		for _, key := range keys {
+ 			f.appendKeyValue(b, key, entry.Data[key])
+ 		}
