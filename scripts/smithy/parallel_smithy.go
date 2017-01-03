@@ -3,6 +3,7 @@ package main
 import (
 	"os/exec"
 	"sync"
+	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"fmt"
@@ -28,26 +29,28 @@ func main(){
 
 func runTestScript(script string, scriptDir string, wg *sync.WaitGroup){
 	fullScript := scriptDir + script
-	fmt.Println("Running script:", script)
+	log.Info("Running script:", script)
 	out, err := exec.Command("/bin/bash", fullScript).CombinedOutput();
 
 	if err != nil {
-		fmt.Printf("Script '%s' failed with output:\n%s", script, out)
+		log.Errorf("Script '%s' failed with output:\n%s", script, out)
 	}
 
 
 	logFile := os.ExpandEnv("${SMITHY_ROOT}/test_results/" + script + "_out.txt")
 	err2 := writeFile(logFile, out)
 
+	fmt.Print(out)
+
 	if err2 != nil {
-		fmt.Printf("Writing log file '%s' failed with error:%s", logFile, err2)
+		log.Errorf("Writing log file '%s' failed with error:%s", logFile, err2)
 	}
 
 	if err != nil || err2 != nil {
 		os.Exit(1)
 	}
 
-	fmt.Println("Test script complete:", script)
+	log.Info("Test script complete:", script)
 	wg.Done()
 
 }
