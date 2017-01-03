@@ -31,7 +31,7 @@ func main(){
 func runTestScript(script string, scriptDir string, wg *sync.WaitGroup){
 	fullScript := scriptDir + script
 	log.Info("Running script:", script)
-	out, err := exec.Command("/bin/bash", fullScript).CombinedOutput();
+	out, err := exec.Command("/bin/bash", fullScript).CombinedOutput()
 
 	if err != nil {
 		log.Errorf("Script '%s' failed with output:\n%s", script, out)
