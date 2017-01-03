@@ -28,6 +28,7 @@ const (
 	synchronous concurrencyModel = iota
 	tornado
 	asyncio
+	gevent
 )
 
 // Generator implements the LanguageGenerator interface for Python.
@@ -45,6 +46,8 @@ func NewGenerator(options map[string]string) generator.LanguageGenerator {
 		return &TornadoGenerator{gen}
 	case asyncio:
 		return &AsyncIOGenerator{gen}
+	case gevent:
+		return &GeventGenerator{gen}
 	}
 	return gen
 }
@@ -1192,8 +1195,8 @@ func (g *Generator) generateProcessorFunction(method *parser.Method) string {
 	contents := ""
 	contents += fmt.Sprintf("class _%s(FProcessorFunction):\n\n", method.Name)
 	contents += tab + "def __init__(self, handler, lock):\n"
-	contents += tabtab + fmt.Sprintf("super(_%s, self).__init__(handler, lock)\n", method.Name)
-	contents += "\n"
+	contents += tabtab + "self._handler = handler\n"
+	contents += tabtab + "self._lock = lock\n\n"
 
 	contents += tab + "def process(self, ctx, iprot, oprot):\n"
 	contents += tabtab + fmt.Sprintf("args = %s_args()\n", method.Name)
@@ -1377,6 +1380,8 @@ func getAsyncOpt(options map[string]string) concurrencyModel {
 		return tornado
 	} else if _, ok := options["asyncio"]; ok {
 		return asyncio
+	} else if _, ok := options["gevent"]; ok {
+		return gevent
 	}
 	return synchronous
 }

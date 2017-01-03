@@ -127,7 +127,8 @@ class Processor(f_BasePinger.Processor):
 class _ping(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_ping, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = ping_args()
@@ -139,14 +140,14 @@ class _ping(FProcessorFunction):
             if inspect.iscoroutine(ret):
                 ret = await ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "ping", ex.message)
                 return
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "ping", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('ping', TMessageType.REPLY, 0)

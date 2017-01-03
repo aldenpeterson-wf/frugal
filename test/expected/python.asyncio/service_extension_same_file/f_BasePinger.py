@@ -126,7 +126,8 @@ class Processor(FBaseProcessor):
 class _basePing(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_basePing, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = basePing_args()
@@ -138,14 +139,14 @@ class _basePing(FProcessorFunction):
             if inspect.iscoroutine(ret):
                 ret = await ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "basePing", ex.message)
                 return
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "basePing", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('basePing', TMessageType.REPLY, 0)

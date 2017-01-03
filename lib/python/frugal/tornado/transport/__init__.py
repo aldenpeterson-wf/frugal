@@ -2,7 +2,7 @@ from .tornado_transport import FTornadoTransport
 from .http_transport import FHttpTransport
 from .nats_scope_transport import (
     FNatsPublisherTransportFactory,
-    FNatsPublisherTransport,
+    FNatsPublisherTranpsort,
     FNatsSubscriberTransportFactory,
     FNatsSubscriberTransport,
 )
@@ -15,6 +15,6 @@ __all__ = [
     'FHttpTransport',
     'FNatsPublisherTransportFactory',
     'FNatsSubscriberTransportFactory',
-    'FNatsPublisherTransport',
+    'FNatsPublisherTranpsort',
     'FNatsSubscriberTransport',
 ]

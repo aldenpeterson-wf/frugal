@@ -4,11 +4,11 @@ from thrift.transport.TTransport import TTransportException, TMemoryBuffer
 from tornado import gen
 
 from frugal import _NATS_MAX_MESSAGE_SIZE
+from frugal.exceptions import FMessageSizeException
 from frugal.transport import FPublisherTransportFactory
 from frugal.transport import FPublisherTransport
 from frugal.transport import FSubscriberTransportFactory
 from frugal.transport import FSubscriberTransport
-from frugal.exceptions import FMessageSizeException
 
 _FRAME_BUFFER_SIZE = 5
 _FRUGAL_PREFIX = "frugal."
@@ -21,12 +21,12 @@ class FNatsPublisherTransportFactory(FPublisherTransportFactory):
         self._nats_client = nats_client
 
     def get_transport(self):
-        return FNatsPublisherTransport(self._nats_client)
+        return FNatsPublisherTranpsort(self._nats_client)
 
 
-class FNatsPublisherTransport(FPublisherTransport):
+class FNatsPublisherTranpsort(FPublisherTransport):
     def __init__(self, nats_client):
-        super(FNatsPublisherTransport, self).__init__(_NATS_MAX_MESSAGE_SIZE)
+        super(FNatsPublisherTranpsort, self).__init__(_NATS_MAX_MESSAGE_SIZE)
         self._nats_client = nats_client
 
     @gen.coroutine

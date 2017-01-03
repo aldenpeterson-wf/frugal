@@ -4,7 +4,7 @@ import uuid
 
 from nats.io.client import Client as NATS
 from tornado import ioloop, gen
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TJSONProtocol
 from thrift.transport.TTransport import TTransportException
 from frugal.context import FContext
 from frugal.protocol import FProtocolFactory
@@ -30,7 +30,7 @@ root.addHandler(ch)
 def main():
     # Declare the protocol stack used for serialization.
     # Protocol stacks must match between clients and servers.
-    prot_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
+    prot_factory = FProtocolFactory(TJSONProtocol.TJSONProtocolFactory())
 
     # Open a NATS connection to send requests
     nats_client = NATS()
@@ -61,9 +61,9 @@ def main():
 
     root.info("Bought an album %s\n", album)
 
-    yield store_client.enterAlbumGiveaway(FContext(),
-                                          "kevin@workiva.com",
-                                          "Kevin")
+    # yield store_client.enterAlbumGiveaway(FContext(),
+    #                                       "kevin@workiva.com",
+    #                                       "Kevin")
 
     yield nats_transport.close()
     yield nats_client.close()

@@ -12,7 +12,7 @@ from frugal.transport import TMemoryOutputBuffer
 logger = logging.getLogger(__name__)
 
 
-class FNatsTornadoServer(FServer):
+class FNatsServer(FServer):
     """An implementation of FServer which uses NATS as the underlying transport.
     Clients must connect with the FNatsTransport"""
 
@@ -22,9 +22,10 @@ class FNatsTornadoServer(FServer):
 
         Args:
             nats_client: connected instance of nats.io.Client
-            subject: subject to listen on
+            subjects: subject or list of subjects to listen on
             processor: FProcess
             protocol_factory: FProtocolFactory
+            queue: Nats queue group
         """
         self._nats_client = nats_client
         self._subjects = [subjects] if isinstance(subjects, basestring) \
@@ -91,6 +92,8 @@ class FNatsTornadoServer(FServer):
         except Exception:
             return
 
+        # A length of 4 means it was a one-way and does not have a response to
+        # publish
         if len(otrans) == 4:
             return
 

@@ -112,7 +112,8 @@ class Processor(generic_package_prefix.actual_base.python.f_BaseFoo.Processor):
 class _get_thing(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_get_thing, self).__init__(handler, lock)
+        self._handler = handler
+        self._lock = lock
 
     def process(self, ctx, iprot, oprot):
         args = get_thing_args()

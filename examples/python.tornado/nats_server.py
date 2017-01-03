@@ -4,14 +4,14 @@ import logging
 import sys
 import uuid
 
-from thrift.protocol import TBinaryProtocol
+from thrift.protocol import TJSONProtocol
 
 from tornado import gen, ioloop
 
 from nats.io.client import Client as NATS
 
 from frugal.protocol import FProtocolFactory
-from frugal.tornado.server import FNatsTornadoServer
+from frugal.tornado.server import FNatsServer
 
 sys.path.append('gen-py.tornado')
 
@@ -64,7 +64,7 @@ class StoreHandler(Iface):
 def main():
     # Declare the protocol stack used for serialization.
     # Protocol stacks must match between clients and servers.
-    prot_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
+    prot_factory = FProtocolFactory(TJSONProtocol.TJSONProtocolFactory())
 
     # Open a NATS connection to receive requests
     nats_client = NATS()
@@ -82,8 +82,8 @@ def main():
 
     # Create a new music store server using the processor,
     # The server will listen on the music-service NATS topic
-    server = FNatsTornadoServer(nats_client, "music-service",
-                                processor, prot_factory)
+    server = FNatsServer(nats_client, "music-service",
+                         processor, prot_factory)
 
     root.info("Starting server...")
 

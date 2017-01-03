@@ -707,7 +707,8 @@ class Processor(actual_base.python.f_BaseFoo.Processor):
 class _ping(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_ping, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = ping_args()
@@ -719,14 +720,14 @@ class _ping(FProcessorFunction):
             if inspect.iscoroutine(ret):
                 ret = await ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "ping", ex.message)
                 return
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "ping", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('ping', TMessageType.REPLY, 0)
@@ -740,7 +741,8 @@ class _ping(FProcessorFunction):
 class _blah(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_blah, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = blah_args()
@@ -753,7 +755,7 @@ class _blah(FProcessorFunction):
                 ret = await ret
             result.success = ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "blah", ex.message)
                 return
         except AwesomeException as awe:
@@ -761,10 +763,10 @@ class _blah(FProcessorFunction):
         except actual_base.python.ttypes.api_exception as api:
             result.api = api
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "blah", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('blah', TMessageType.REPLY, 0)
@@ -778,7 +780,8 @@ class _blah(FProcessorFunction):
 class _oneWay(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_oneWay, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = oneWay_args()
@@ -789,7 +792,7 @@ class _oneWay(FProcessorFunction):
             if inspect.iscoroutine(ret):
                 ret = await ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "oneWay", ex.message)
                 return
         except Exception as e:
@@ -799,7 +802,8 @@ class _oneWay(FProcessorFunction):
 class _bin_method(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_bin_method, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = bin_method_args()
@@ -812,16 +816,16 @@ class _bin_method(FProcessorFunction):
                 ret = await ret
             result.success = ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "bin_method", ex.message)
                 return
         except actual_base.python.ttypes.api_exception as api:
             result.api = api
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "bin_method", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('bin_method', TMessageType.REPLY, 0)
@@ -835,7 +839,8 @@ class _bin_method(FProcessorFunction):
 class _param_modifiers(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_param_modifiers, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = param_modifiers_args()
@@ -848,14 +853,14 @@ class _param_modifiers(FProcessorFunction):
                 ret = await ret
             result.success = ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "param_modifiers", ex.message)
                 return
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "param_modifiers", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('param_modifiers', TMessageType.REPLY, 0)
@@ -869,7 +874,8 @@ class _param_modifiers(FProcessorFunction):
 class _underlying_types_test(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_underlying_types_test, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = underlying_types_test_args()
@@ -882,14 +888,14 @@ class _underlying_types_test(FProcessorFunction):
                 ret = await ret
             result.success = ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "underlying_types_test", ex.message)
                 return
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "underlying_types_test", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('underlying_types_test', TMessageType.REPLY, 0)
@@ -903,7 +909,8 @@ class _underlying_types_test(FProcessorFunction):
 class _getThing(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_getThing, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = getThing_args()
@@ -916,14 +923,14 @@ class _getThing(FProcessorFunction):
                 ret = await ret
             result.success = ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "getThing", ex.message)
                 return
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "getThing", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('getThing', TMessageType.REPLY, 0)
@@ -937,7 +944,8 @@ class _getThing(FProcessorFunction):
 class _getMyInt(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_getMyInt, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = getMyInt_args()
@@ -950,14 +958,14 @@ class _getMyInt(FProcessorFunction):
                 ret = await ret
             result.success = ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "getMyInt", ex.message)
                 return
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "getMyInt", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('getMyInt', TMessageType.REPLY, 0)
@@ -971,7 +979,8 @@ class _getMyInt(FProcessorFunction):
 class _use_subdir_struct(FProcessorFunction):
 
     def __init__(self, handler, lock):
-        super(_use_subdir_struct, self).__init__(handler, lock)
+        self._handler = handler
+        self._write_lock = lock
 
     async def process(self, ctx, iprot, oprot):
         args = use_subdir_struct_args()
@@ -984,14 +993,14 @@ class _use_subdir_struct(FProcessorFunction):
                 ret = await ret
             result.success = ret
         except FRateLimitException as ex:
-            async with self._lock:
+            async with self._write_lock:
                 _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "use_subdir_struct", ex.message)
                 return
         except Exception as e:
-            async with self._lock:
+            async with self._write_lock:
                 e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "use_subdir_struct", e.args[0])
             raise e from None
-        async with self._lock:
+        async with self._write_lock:
             try:
                 oprot.write_response_headers(ctx)
                 oprot.writeMessageBegin('use_subdir_struct', TMessageType.REPLY, 0)
