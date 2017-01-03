@@ -10,7 +10,7 @@ import (
 )
 
 func main(){
-	log.SetOutput(os.Stderr)
+	log.SetOutput(os.Stdout)
 
 	testScriptDir := "scripts/smithy/"
 	// For new/removed files, update smithy.yaml to no longer print
