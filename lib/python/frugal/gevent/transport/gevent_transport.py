@@ -3,8 +3,8 @@ from frugal.transport import FTransport
 
 
 class FGeventTransport(FTransport):
-    """ FTornadoTransport implements the buffered write data and registry
-    interactions shared by all FTransports.
+    """ FGeventTransport implements registry interactions shared
+        by all FTransports.
     """
 
     def __init__(self, max_message_size=1024 * 1024):

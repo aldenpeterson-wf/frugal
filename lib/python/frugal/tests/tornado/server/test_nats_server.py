@@ -4,7 +4,7 @@ import struct
 from tornado import concurrent
 from tornado.testing import gen_test, AsyncTestCase
 
-from frugal.tornado.server import FNatsTornadoServer
+from frugal.tornado.server import FNatsServer
 
 
 class TestFNatsTornadoServer(AsyncTestCase):
@@ -18,7 +18,7 @@ class TestFNatsTornadoServer(AsyncTestCase):
         self.mock_transport_factory = mock.Mock()
         self.mock_prot_factory = mock.Mock()
 
-        self.server = FNatsTornadoServer(
+        self.server = FNatsServer(
             self.mock_nats_client,
             self.subject,
             self.mock_processor,
