@@ -20,9 +20,11 @@ type GeventGenerator struct {
 func (t *GeventGenerator) GenerateServiceImports(file *os.File, s *parser.Service) error {
 	imports := "from datetime import timedelta\n"
 	imports += "from threading import Lock\n\n"
+        imports += "from gevent.event import AsyncResult\n"
+        imports += "from gevent import Timeout\n\n"
 
-	imports += "from frugal.aio.processor import FBaseProcessor\n"
-	imports += "from frugal.aio.processor import FProcessorFunction\n"
+	imports += "from frugal.processor import FBaseProcessor\n"
+        imports += "from frugal.processor import FProcessorFunction\n"
 	imports += "from frugal.exceptions import FApplicationException\n"
 	imports += "from frugal.exceptions import FMessageSizeException\n"
 	imports += "from frugal.exceptions import FTimeoutException\n"

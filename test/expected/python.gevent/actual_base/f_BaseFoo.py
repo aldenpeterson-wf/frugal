@@ -12,13 +12,12 @@ from threading import Lock
 from gevent.event import AsyncResult
 from gevent import Timeout
 
-from frugal.exceptions import FApplicationException
-from frugal.exceptions import FMessageSizeException
-from frugal.exceptions import FRateLimitException
-from frugal.exceptions import FTimeoutException
-from frugal.middleware import Method
 from frugal.processor import FBaseProcessor
 from frugal.processor import FProcessorFunction
+from frugal.exceptions import FApplicationException
+from frugal.exceptions import FMessageSizeException
+from frugal.exceptions import FTimeoutException
+from frugal.middleware import Method
 from frugal.transport import TMemoryOutputBuffer
 from thrift.Thrift import TApplicationException
 from thrift.Thrift import TMessageType
@@ -37,21 +36,21 @@ class Iface(object):
 
 class Client(Iface):
 
-    def __init__(self, transport, protocol_factory, middleware=None):
+    def __init__(self, provider, middleware=None):
         """
-        Create a new Client with a transport and protocol factory.
+        Create a new Client with an FServiceProvider containing a transport
+        and protocol factory.
 
         Args:
-            transport: FTransport
-            protocol_factory: FProtocolFactory
+            provider: FServiceProvider
             middleware: ServiceMiddleware or list of ServiceMiddleware
         """
+        middleware = middleware or []
         if middleware and not isinstance(middleware, list):
             middleware = [middleware]
-        self._transport = transport
-        self._protocol_factory = protocol_factory
-        self._oprot = protocol_factory.get_protocol(transport)
-        self._write_lock = Lock()
+        self._transport = provider.get_transport()
+        self._protocol_factory = provider.get_protocol_factory()
+        middleware += provider.get_middleware()
         self._methods = {
             'basePing': Method(self._basePing, middleware),
         }
@@ -97,9 +96,6 @@ class Client(Iface):
                 if x.type == FApplicationException.RESPONSE_TOO_LARGE:
                     event.set(FMessageSizeException.response(x.message))
                     return
-                if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:
-                    event.set(FRateLimitException.response(x.message))
-                    return
                 event.set(x)
                 return
             result = basePing_result()
@@ -138,14 +134,14 @@ class _basePing(FProcessorFunction):
         result = basePing_result()
         try:
             self._handler([ctx])
-        except FRateLimitException as ex:
+        except TApplicationException as ex:
             with self._lock:
-                _write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, "basePing", ex.message)
+                _write_application_exception(ctx, oprot, "basePing", exception=ex)
                 return
         except Exception as e:
             with self._lock:
-                e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, "basePing", e.message)
-            raise e
+                e = _write_application_exception(ctx, oprot, "basePing", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
+            raise e from None
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
@@ -154,11 +150,14 @@ class _basePing(FProcessorFunction):
                 oprot.writeMessageEnd()
                 oprot.get_transport().flush()
             except FMessageSizeException as e:
-                raise _write_application_exception(ctx, oprot, FApplicationException.RESPONSE_TOO_LARGE, "basePing", e.message)
+                raise _write_application_exception(ctx, oprot, "basePing", ex_code=FApplicationException.RESPONSE_TOO_LARGE, message=e.args[0])
 
 
-def _write_application_exception(ctx, oprot, typ, method, message):
-    x = TApplicationException(type=typ, message=message)
+def _write_application_exception(ctx, oprot, method, ex_code=None, message=None, exception=None):
+    if exception is not None:
+        x = exception
+    else:
+        x = TApplicationException(type=ex_code, message=message)
     oprot.write_response_headers(ctx)
     oprot.writeMessageBegin(method, TMessageType.EXCEPTION, 0)
     x.write(oprot)
