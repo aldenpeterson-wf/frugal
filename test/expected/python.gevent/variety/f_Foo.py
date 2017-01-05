@@ -9,8 +9,11 @@
 from datetime import timedelta
 from threading import Lock
 
-from frugal.aio.processor import FBaseProcessor
-from frugal.aio.processor import FProcessorFunction
+from gevent.event import AsyncResult
+from gevent import Timeout
+
+from frugal.processor import FBaseProcessor
+from frugal.processor import FProcessorFunction
 from frugal.exceptions import FApplicationException
 from frugal.exceptions import FMessageSizeException
 from frugal.exceptions import FTimeoutException
