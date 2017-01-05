@@ -37,7 +37,7 @@ func (t *GeventGenerator) GenerateServiceImports(file *os.File, s *parser.Servic
 		return err
 	}
 	for _, include := range includes {
-		namespace := a.getPackageNamespace(filepath.Base(include.Name))
+		namespace := t.getPackageNamespace(filepath.Base(include.Name))
 		imports += fmt.Sprintf("import %s.ttypes\n", namespace)
 		imports += fmt.Sprintf("import %s.constants\n", namespace)
 		if s.Extends != "" {
@@ -46,7 +46,7 @@ func (t *GeventGenerator) GenerateServiceImports(file *os.File, s *parser.Servic
 			imports += fmt.Sprintf("import %s.f_%s\n", namespace, extendsService)
 		}
 	}
-	imports += a.generateServiceExtendsImport(s)
+	imports += t.generateServiceExtendsImport(s)
 
 	// Import this service's modules.
 	imports += "from .ttypes import *\n"
@@ -87,13 +87,13 @@ func (t *GeventGenerator) GenerateService(file *os.File, s *parser.Service) erro
 func (t *GeventGenerator) generateClient(service *parser.Service) string {
 	contents := "\n"
 	if service.Extends != "" {
-		contents += fmt.Sprintf("class Client(%s.Client, Iface):\n\n", a.getServiceExtendsName(service))
+		contents += fmt.Sprintf("class Client(%s.Client, Iface):\n\n", t.getServiceExtendsName(service))
 	} else {
 		contents += "class Client(Iface):\n\n"
 	}
 
 	contents += tab + "def __init__(self, provider, middleware=None):\n"
-	contents += a.generateDocString([]string{
+	contents += t.generateDocString([]string{
 		"Create a new Client with an FServiceProvider containing a transport",
 		"and protocol factory.\n",
 		"Args:",
@@ -124,7 +124,7 @@ func (t *GeventGenerator) generateClient(service *parser.Service) string {
 	contents += "\n\n"
 
 	for _, method := range service.Methods {
-		contents += a.generateClientMethod(method)
+		contents += t.generateClientMethod(method)
 	}
 	contents += "\n"
 
@@ -230,13 +230,13 @@ func (t *GeventGenerator) generateServer(service *parser.Service) string {
 func (t *GeventGenerator) generateProcessor(service *parser.Service) string {
 	contents := ""
 	if service.Extends != "" {
-		contents += fmt.Sprintf("class Processor(%s.Processor):\n\n", g.getServiceExtendsName(service))
+		contents += fmt.Sprintf("class Processor(%s.Processor):\n\n", t.getServiceExtendsName(service))
 	} else {
 		contents += "class Processor(FBaseProcessor):\n\n"
 	}
 
 	contents += tab + "def __init__(self, handler, middleware=None):\n"
-	contents += g.generateDocString([]string{
+	contents += t.generateDocString([]string{
 		"Create a new Processor.\n",
 		"Args:",
 		tab + "handler: Iface",
@@ -268,6 +268,7 @@ func (t *GeventGenerator) generateProcessor(service *parser.Service) string {
 	return contents
 }
 func (t *GeventGenerator) generateProcessorFunction(method *parser.Method) string {
+	methodLower := parser.LowercaseFirstLetter(method.Name)
 	contents := ""
 	contents += fmt.Sprintf("class _%s(FProcessorFunction):\n\n", method.Name)
 	contents += tab + "def __init__(self, handler, lock):\n"
