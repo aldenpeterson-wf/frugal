@@ -11,4 +11,6 @@ else
 fi
 
 pip install -e ".[tornado]"
+#pip install -e ".[gevent]"
+pip install -r requirements_dev_gevent.txt
 python3.5 /usr/bin/pip3 install -e ".[asyncio]"

@@ -160,7 +160,7 @@ func (t *GeventGenerator) generateClientRecvMethod(method *parser.Method) string
 		contents += tabtabtabtab + fmt.Sprintf("return\n")
 	}
 	if method.ReturnType == nil {
-		contents += tabtabtab + "return\n"
+		contents += tabtabtab + "event.set(None)\n"
 	} else {
 		contents += tabtabtab + "if result.success is not None:\n"
 		contents += tabtabtabtab + fmt.Sprintf("event.set(result.success)\n")

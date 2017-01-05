@@ -105,7 +105,7 @@ class Client(Iface):
             result = basePing_result()
             result.read(iprot)
             iprot.readMessageEnd()
-            return
+            event.set(None)
         return basePing_callback
 
 

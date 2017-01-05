@@ -204,7 +204,7 @@ class Client(actual_base.python.f_BaseFoo.Client, Iface):
             result = ping_result()
             result.read(iprot)
             iprot.readMessageEnd()
-            return
+            event.set(None)
         return ping_callback
 
     def blah(self, ctx, num, Str, event):
