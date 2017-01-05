@@ -3,13 +3,15 @@ package python
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/Workiva/frugal/compiler/globals"
 	"github.com/Workiva/frugal/compiler/parser"
 )
 
 // GeventGenerator implements the LanguageGenerator interface for Python using
-// Tornado.
+// Gevent.
 type GeventGenerator struct {
 	*Generator
 }
@@ -19,31 +21,38 @@ func (t *GeventGenerator) GenerateServiceImports(file *os.File, s *parser.Servic
 	imports := "from datetime import timedelta\n"
 	imports += "from threading import Lock\n\n"
 
-
-	imports += "from gevent.event import AsyncResult\n"
-	imports += "from gevent import Timeout\n\n"
-
+	imports += "from frugal.aio.processor import FBaseProcessor\n"
+	imports += "from frugal.aio.processor import FProcessorFunction\n"
 	imports += "from frugal.exceptions import FApplicationException\n"
 	imports += "from frugal.exceptions import FMessageSizeException\n"
-	imports += "from frugal.exceptions import FRateLimitException\n"
 	imports += "from frugal.exceptions import FTimeoutException\n"
 	imports += "from frugal.middleware import Method\n"
-	imports += "from frugal.processor import FBaseProcessor\n"
-	imports += "from frugal.processor import FProcessorFunction\n"
 	imports += "from frugal.transport import TMemoryOutputBuffer\n"
 	imports += "from thrift.Thrift import TApplicationException\n"
 	imports += "from thrift.Thrift import TMessageType\n"
 
-	imports += t.generateServiceExtendsImport(s)
-	if imp, err := t.generateServiceIncludeImports(s); err != nil {
+	// Import include modules.
+	includes, err := s.ReferencedIncludes()
+	if err != nil {
 		return err
-	} else {
-		imports += imp
 	}
+	for _, include := range includes {
+		namespace := a.getPackageNamespace(filepath.Base(include.Name))
+		imports += fmt.Sprintf("import %s.ttypes\n", namespace)
+		imports += fmt.Sprintf("import %s.constants\n", namespace)
+		if s.Extends != "" {
+			extendsSlice := strings.Split(s.Extends, ".")
+			extendsService := extendsSlice[len(extendsSlice)-1]
+			imports += fmt.Sprintf("import %s.f_%s\n", namespace, extendsService)
+		}
+	}
+	imports += a.generateServiceExtendsImport(s)
 
-	_, err := file.WriteString(imports)
+	// Import this service's modules.
+	imports += "from .ttypes import *\n"
+
+	_, err = file.WriteString(imports)
 	return err
-
 }
 
 // GenerateScopeImports generates necessary imports for the given scope.
@@ -77,11 +86,48 @@ func (t *GeventGenerator) GenerateService(file *os.File, s *parser.Service) erro
 
 func (t *GeventGenerator) generateClient(service *parser.Service) string {
 	contents := "\n"
-	contents += t.generateClientConstructor(service, true)
+	if service.Extends != "" {
+		contents += fmt.Sprintf("class Client(%s.Client, Iface):\n\n", a.getServiceExtendsName(service))
+	} else {
+		contents += "class Client(Iface):\n\n"
+	}
+
+	contents += tab + "def __init__(self, provider, middleware=None):\n"
+	contents += a.generateDocString([]string{
+		"Create a new Client with an FServiceProvider containing a transport",
+		"and protocol factory.\n",
+		"Args:",
+		tab + "provider: FServiceProvider",
+		tab + "middleware: ServiceMiddleware or list of ServiceMiddleware",
+	}, tabtab)
+	contents += tabtab + "middleware = middleware or []\n"
+	contents += tabtab + "if middleware and not isinstance(middleware, list):\n"
+	contents += tabtabtab + "middleware = [middleware]\n"
+	if service.Extends != "" {
+		contents += tabtab + "super(Client, self).__init__(provider, middleware=middleware)\n"
+		contents += tabtab + "middleware += provider.get_middleware()\n"
+		contents += tabtab + "self._methods.update("
+	} else {
+		contents += tabtab + "self._transport = provider.get_transport()\n"
+		contents += tabtab + "self._protocol_factory = provider.get_protocol_factory()\n"
+		contents += tabtab + "middleware += provider.get_middleware()\n"
+		contents += tabtab + "self._methods = "
+	}
+	contents += "{\n"
 	for _, method := range service.Methods {
-		contents += t.generateClientMethod(method)
+		contents += tabtabtab + fmt.Sprintf("'%s': Method(self._%s, middleware),\n", method.Name, method.Name)
+	}
+	contents += tabtab + "}"
+	if service.Extends != "" {
+		contents += ")"
+	}
+	contents += "\n\n"
+
+	for _, method := range service.Methods {
+		contents += a.generateClientMethod(method)
 	}
 	contents += "\n"
+
 	return contents
 }
 
@@ -121,7 +167,7 @@ func (t *GeventGenerator) generateClientSendMethod(method *parser.Method) string
 	contents += tabtab + "buffer = TMemoryOutputBuffer(self._transport.get_request_size_limit())\n"
 	contents += tabtab + "oprot = self._protocol_factory.get_protocol(buffer)\n"
 	contents += tabtab + "oprot.write_request_headers(ctx)\n"
-	contents += tabtab + fmt.Sprintf("oprot.writeMessageBegin('%s', TMessageType.CALL, 0)\n", method.Name)
+	contents += tabtab + fmt.Sprintf("oprot.writeMessageBegin('%s', TMessageType.CALL, 0)\n", parser.LowercaseFirstLetter(method.Name))
 	contents += tabtab + fmt.Sprintf("args = %s_args()\n", method.Name)
 	for _, arg := range method.Arguments {
 		contents += tabtab + fmt.Sprintf("args.%s = %s\n", arg.Name, arg.Name)
@@ -146,9 +192,6 @@ func (t *GeventGenerator) generateClientRecvMethod(method *parser.Method) string
 	contents += tabtabtabtab + "if x.type == FApplicationException.RESPONSE_TOO_LARGE:\n"
 	contents += tabtabtabtabtab + "event.set(FMessageSizeException.response(x.message))\n"
 	contents += tabtabtabtabtab + "return\n"
-	contents += tabtabtabtab + "if x.type == FApplicationException.RATE_LIMIT_EXCEEDED:\n"
-	contents += tabtabtabtabtab + "event.set(FRateLimitException.response(x.message))\n"
-	contents += tabtabtabtabtab + "return\n"
 	contents += tabtabtabtab + "event.set(x)\n"
 	contents += tabtabtabtab + "return\n"
 	contents += tabtabtab + fmt.Sprintf("result = %s_result()\n", method.Name)
@@ -157,13 +200,13 @@ func (t *GeventGenerator) generateClientRecvMethod(method *parser.Method) string
 	for _, err := range method.Exceptions {
 		contents += tabtabtab + fmt.Sprintf("if result.%s is not None:\n", err.Name)
 		contents += tabtabtabtab + fmt.Sprintf("event.set(result.%s)\n", err.Name)
-		contents += tabtabtabtab + fmt.Sprintf("return\n")
+		contents += tabtabtabtab + "return\n"
 	}
 	if method.ReturnType == nil {
 		contents += tabtabtab + "event.set(None)\n"
 	} else {
 		contents += tabtabtab + "if result.success is not None:\n"
-		contents += tabtabtabtab + fmt.Sprintf("event.set(result.success)\n")
+		contents += tabtabtabtab + "event.set(result.success)\n"
 		contents += tabtabtabtab + "return\n"
 		contents += tabtabtab + fmt.Sprintf(
 			"raise TApplicationException(TApplicationException.MISSING_RESULT, \"%s failed: unknown result\")\n", method.Name)
@@ -184,6 +227,46 @@ func (t *GeventGenerator) generateServer(service *parser.Service) string {
 	return contents
 }
 
+func (t *GeventGenerator) generateProcessor(service *parser.Service) string {
+	contents := ""
+	if service.Extends != "" {
+		contents += fmt.Sprintf("class Processor(%s.Processor):\n\n", g.getServiceExtendsName(service))
+	} else {
+		contents += "class Processor(FBaseProcessor):\n\n"
+	}
+
+	contents += tab + "def __init__(self, handler, middleware=None):\n"
+	contents += g.generateDocString([]string{
+		"Create a new Processor.\n",
+		"Args:",
+		tab + "handler: Iface",
+	}, tabtab)
+
+	contents += tabtab + "if middleware and not isinstance(middleware, list):\n"
+	contents += tabtabtab + "middleware = [middleware]\n\n"
+
+	if service.Extends != "" {
+		contents += tabtab + "super(Processor, self).__init__(handler, middleware=middleware)\n"
+	} else {
+		contents += tabtab + "super(Processor, self).__init__()\n"
+	}
+	for _, method := range service.Methods {
+		methodLower := parser.LowercaseFirstLetter(method.Name)
+		contents += tabtab + fmt.Sprintf("self.add_to_processor_map('%s', _%s(Method(handler.%s, middleware), self.get_write_lock()))\n",
+			methodLower, method.Name, method.Name)
+		if len(method.Annotations) > 0 {
+			annotations := make([]string, len(method.Annotations))
+			for i, annotation := range method.Annotations {
+				annotations[i] = fmt.Sprintf("'%s': '%s'", annotation.Name, annotation.Value)
+			}
+			contents += tabtab +
+				fmt.Sprintf("self.add_to_annotations_map('%s', {%s})\n", methodLower, strings.Join(annotations, ", "))
+		}
+	}
+	contents += "\n\n"
+
+	return contents
+}
 func (t *GeventGenerator) generateProcessorFunction(method *parser.Method) string {
 	contents := ""
 	contents += fmt.Sprintf("class _%s(FProcessorFunction):\n\n", method.Name)
@@ -200,39 +283,38 @@ func (t *GeventGenerator) generateProcessorFunction(method *parser.Method) strin
 	}
 	contents += tabtab + "try:\n"
 	if method.ReturnType == nil {
-		contents += tabtabtab + fmt.Sprintf("self._handler([ctx%s])\n",
-			t.generateServerArgs(method.Arguments))
+		contents += tabtabtab + fmt.Sprintf("self._handler([ctx%s])\n",	t.generateServerArgs(method.Arguments))
 	} else {
 		contents += tabtabtab + fmt.Sprintf("result.success = self._handler([ctx%s])\n",
 			t.generateServerArgs(method.Arguments))
 	}
+	contents += tabtab + "except TApplicationException as ex:\n"
+	contents += tabtabtab + "with self._lock:\n"
+	contents += tabtabtabtab +
+		fmt.Sprintf("_write_application_exception(ctx, oprot, \"%s\", exception=ex)\n",
+			methodLower)
+	contents += tabtabtabtab + "return\n"
 	for _, err := range method.Exceptions {
 		contents += tabtab + fmt.Sprintf("except %s as %s:\n", t.qualifiedTypeName(err.Type), err.Name)
 		contents += tabtabtab + fmt.Sprintf("result.%s = %s\n", err.Name, err.Name)
 	}
-	contents += tabtab + "except FRateLimitException as ex:\n"
-	contents += tabtabtab + "with self._lock:\n"
-	contents += tabtabtabtab +
-		fmt.Sprintf("_write_application_exception(ctx, oprot, FApplicationException.RATE_LIMIT_EXCEEDED, \"%s\", ex.message)\n",
-			method.Name)
-	contents += tabtabtabtab + "return\n"
 	contents += tabtab + "except Exception as e:\n"
 	if !method.Oneway {
 		contents += tabtabtab + "with self._lock:\n"
-		contents += tabtabtabtab + fmt.Sprintf("e = _write_application_exception(ctx, oprot, TApplicationException.UNKNOWN, \"%s\", e.message)\n", method.Name)
+		contents += tabtabtabtab + fmt.Sprintf("e = _write_application_exception(ctx, oprot, \"%s\", ex_code=TApplicationException.UNKNOWN, message=e.args[0])\n", methodLower)
 	}
-	contents += tabtabtab + "raise e\n"
+	contents += tabtabtab + "raise e from None\n"
 	if !method.Oneway {
 		contents += tabtab + "with self._lock:\n"
 		contents += tabtabtab + "try:\n"
 		contents += tabtabtabtab + "oprot.write_response_headers(ctx)\n"
-		contents += tabtabtabtab + fmt.Sprintf("oprot.writeMessageBegin('%s', TMessageType.REPLY, 0)\n", method.Name)
+		contents += tabtabtabtab + fmt.Sprintf("oprot.writeMessageBegin('%s', TMessageType.REPLY, 0)\n", methodLower)
 		contents += tabtabtabtab + "result.write(oprot)\n"
 		contents += tabtabtabtab + "oprot.writeMessageEnd()\n"
 		contents += tabtabtabtab + "oprot.get_transport().flush()\n"
 		contents += tabtabtab + "except FMessageSizeException as e:\n"
 		contents += tabtabtabtab + fmt.Sprintf(
-			"raise _write_application_exception(ctx, oprot, FApplicationException.RESPONSE_TOO_LARGE, \"%s\", e.message)\n", method.Name)
+			"raise _write_application_exception(ctx, oprot, \"%s\", ex_code=FApplicationException.RESPONSE_TOO_LARGE, message=e.args[0])\n", methodLower)
 	}
 	contents += "\n\n"
 
@@ -258,8 +340,10 @@ func (t *GeventGenerator) GenerateSubscriber(file *os.File, scope *parser.Scope)
 		tab + "middleware: ServiceMiddleware or list of ServiceMiddleware",
 	}, tabtab)
 	subscriber += "\n"
+	subscriber += tabtab + "middleware = middleware or []\n"
 	subscriber += tabtab + "if middleware and not isinstance(middleware, list):\n"
 	subscriber += tabtabtab + "middleware = [middleware]\n"
+	subscriber += tabtab + "middleware += provider.get_middleware()\n"
 	subscriber += tabtab + "self._middleware = middleware\n"
 	subscriber += tabtab + "self._provider = provider\n\n"
 
@@ -290,7 +374,8 @@ func (t *GeventGenerator) generateSubscribeMethod(scope *parser.Scope, op *parse
 		docstr[0] = "\n" + tabtab + docstr[0]
 		docstr = append(op.Comment, docstr...)
 	}
-	method := tab + fmt.Sprintf("def subscribe_%s(self, %s%s_handler):\n", op.Name, args, op.Name)
+	method := ""
+	method += tab + fmt.Sprintf("def subscribe_%s(self, %s%s_handler):\n", op.Name, args, op.Name)
 	method += t.generateDocString(docstr, tabtab)
 	method += "\n"
 
