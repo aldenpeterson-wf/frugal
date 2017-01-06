@@ -17,7 +17,7 @@ class FNatsTransport(FGeventTransport):
     """
 
     def __init__(self, nats_client, subject, inbox=""):
-        """Create a new instance of FStatelessNatsTornadoServer
+        """Create a new instance of FNatsTransport
 
         Args:
             nats_client: connected instance of nats.io.Client

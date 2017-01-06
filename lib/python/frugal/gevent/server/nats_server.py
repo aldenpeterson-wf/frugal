@@ -1,7 +1,5 @@
 import logging
-import struct
 
-import gevent
 from gevent.event import Event
 from thrift.Thrift import TApplicationException
 from thrift.transport.TTransport import TMemoryBuffer
@@ -19,7 +17,7 @@ class FNatsServer(FNatsBaseServer):
 
     def __init__(self, nats_client, subjects, processor,
                  protocol_factory, queue=""):
-        """Create a new instance of FStatelessNatsTornadoServer
+        """Create a new instance of FNatsServer
 
         Args:
             nats_client: connected instance of gnats.Client
