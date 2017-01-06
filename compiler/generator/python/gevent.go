@@ -306,7 +306,7 @@ func (t *GeventGenerator) generateProcessorFunction(method *parser.Method) strin
 		contents += tabtabtab + "with self._lock:\n"
 		contents += tabtabtabtab + fmt.Sprintf("e = _write_application_exception(ctx, oprot, \"%s\", ex_code=TApplicationException.UNKNOWN, message=e.args[0])\n", methodLower)
 	}
-	contents += tabtabtab + "raise e from None\n"
+	contents += tabtabtab + "raise e\n"
 	if !method.Oneway {
 		contents += tabtab + "with self._lock:\n"
 		contents += tabtabtab + "try:\n"
