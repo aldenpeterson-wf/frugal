@@ -1,3 +1,4 @@
+from .gevent_transport import FGeventTransport
 from .nats_scope_transport import (
     FNatsPublisherTransportFactory,
     FNatsPublisherTranpsort,
