@@ -672,7 +672,7 @@ class _Ping(FProcessorFunction):
         except Exception as e:
             with self._lock:
                 e = _write_application_exception(ctx, oprot, "ping", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
-            raise e from None
+            raise e
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
@@ -708,7 +708,7 @@ class _blah(FProcessorFunction):
         except Exception as e:
             with self._lock:
                 e = _write_application_exception(ctx, oprot, "blah", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
-            raise e from None
+            raise e
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
@@ -737,7 +737,7 @@ class _oneWay(FProcessorFunction):
                 _write_application_exception(ctx, oprot, "oneWay", exception=ex)
                 return
         except Exception as e:
-            raise e from None
+            raise e
 
 
 class _bin_method(FProcessorFunction):
@@ -762,7 +762,7 @@ class _bin_method(FProcessorFunction):
         except Exception as e:
             with self._lock:
                 e = _write_application_exception(ctx, oprot, "bin_method", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
-            raise e from None
+            raise e
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
@@ -794,7 +794,7 @@ class _param_modifiers(FProcessorFunction):
         except Exception as e:
             with self._lock:
                 e = _write_application_exception(ctx, oprot, "param_modifiers", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
-            raise e from None
+            raise e
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
@@ -826,7 +826,7 @@ class _underlying_types_test(FProcessorFunction):
         except Exception as e:
             with self._lock:
                 e = _write_application_exception(ctx, oprot, "underlying_types_test", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
-            raise e from None
+            raise e
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
@@ -858,7 +858,7 @@ class _getThing(FProcessorFunction):
         except Exception as e:
             with self._lock:
                 e = _write_application_exception(ctx, oprot, "getThing", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
-            raise e from None
+            raise e
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
@@ -890,7 +890,7 @@ class _getMyInt(FProcessorFunction):
         except Exception as e:
             with self._lock:
                 e = _write_application_exception(ctx, oprot, "getMyInt", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
-            raise e from None
+            raise e
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
@@ -922,7 +922,7 @@ class _use_subdir_struct(FProcessorFunction):
         except Exception as e:
             with self._lock:
                 e = _write_application_exception(ctx, oprot, "use_subdir_struct", ex_code=TApplicationException.UNKNOWN, message=e.args[0])
-            raise e from None
+            raise e
         with self._lock:
             try:
                 oprot.write_response_headers(ctx)
