@@ -27,7 +27,7 @@ class FGeventTransport(FTransport):
         self._registry.register(context, callback)
 
     def unregister(self, context):
-        """Unregisteer the given context from the transports internal registry.
+        """Unregister the given context from the transports internal registry.
 
         Args:
             context: FContext to remove from the registry.
