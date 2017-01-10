@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
 import sys
@@ -89,7 +88,6 @@ def main():
     root.info("Starting server...")
 
     server.serve()
-    # gevent.sleep(100)
 
 
 if __name__ == '__main__':

@@ -131,5 +131,3 @@ class TestFNatsTransport(unittest.TestCase):
             frame_length + data,
             reply=self.inbox
         )
-
-        # self.mock_nats_client.flush.assert_called_with()

@@ -4,7 +4,7 @@ import uuid
 import gevent
 
 from gnats import Client as NATS
-from thrift.protocol import TJSONProtocol
+from thrift.protocol.TJSONProtocol import TJSONProtocolFactory
 from thrift.transport.TTransport import TTransportException
 from frugal.context import FContext
 from frugal.protocol import FProtocolFactory
@@ -29,7 +29,7 @@ root.addHandler(ch)
 def main():
     # Declare the protocol stack used for serialization.
     # Protocol stacks must match between clients and servers.
-    prot_factory = FProtocolFactory(TJSONProtocol.TJSONProtocolFactory())
+    prot_factory = FProtocolFactory(TJSONProtocolFactory())
 
     # Open a NATS connection to send requests
     nats_client = NATS()

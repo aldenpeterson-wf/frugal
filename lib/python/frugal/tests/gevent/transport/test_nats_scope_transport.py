@@ -8,7 +8,7 @@ from gnats.client.client import Subscription
 from gnats.client.errors import ErrConnectionClosed, ErrTimeout, ErrMaxPayload
 
 from frugal.exceptions import FMessageSizeException
-from frugal.gevent.transport import FNatsPublisherTranpsort
+from frugal.gevent.transport import FNatsPublisherTransport
 from frugal.gevent.transport import FNatsSubscriberTransport
 
 
@@ -19,7 +19,7 @@ class TestFNatsScopeTransport(unittest.TestCase):
 
         self.nats_client = mock.Mock()
 
-        self.publisher_transport = FNatsPublisherTranpsort(self.nats_client)
+        self.publisher_transport = FNatsPublisherTransport(self.nats_client)
         self.subscriber_transport = FNatsSubscriberTransport(
             self.nats_client, "Q")
 

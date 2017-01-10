@@ -23,7 +23,6 @@ from frugal_test.f_FrugalTest import Client as FrugalTestClient
 
 from gnats import Client as NATS
 from thrift.transport.TTransport import TTransportException
-# from tornado import ioloop, gen
 
 from common.utils import *
 from common.test_definitions import rpc_test_definitions
@@ -34,7 +33,7 @@ middleware_called = False
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run a python tornado client")
+    parser = argparse.ArgumentParser(description="Run a python gevent client")
     parser.add_argument('--port', dest='port', default= '9090')
     parser.add_argument('--protocol', dest='protocol_type', default="binary", choices="binary, compact, json")
     parser.add_argument('--transport', dest='transport_type', default="stateless",

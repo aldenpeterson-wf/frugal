@@ -74,8 +74,8 @@ class FNatsServer(FServer):
         except Exception:
             return
 
-        # A length of 4 means it was a one-way and does not have a response to
-        # publish
+        #A frame with length 4 indicates a 1-way message as it only
+        # includes the frame size with no data
         if len(otrans) == 4:
             return
 

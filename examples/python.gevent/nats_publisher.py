@@ -1,12 +1,10 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 import logging
 import sys
 import uuid
 import gevent
 
-from thrift.protocol import TBinaryProtocol
-
+from thrift.protocol.TBinaryProtocol import TBinaryProtocolFactory
 from gnats import Client as NATS
 
 from frugal.protocol import FProtocolFactory
@@ -33,7 +31,7 @@ root.addHandler(ch)
 def main():
     # Declare the protocol stack used for serialization.
     # Protocol stacks must match between publishers and subscribers.
-    prot_factory = FProtocolFactory(TBinaryProtocol.TBinaryProtocolFactory())
+    prot_factory = FProtocolFactory(TBinaryProtocolFactory())
 
     # Open a NATS connection to receive requests
     nats_client = NATS()

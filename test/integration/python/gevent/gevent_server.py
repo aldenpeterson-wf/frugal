@@ -29,9 +29,6 @@ from common.FrugalTestHandler import FrugalTestHandler
 from common.utils import *
 
 from gnats import Client as NATS
-from thrift.protocol.TBinaryProtocol import TBinaryProtocolFactory
-from thrift.protocol.TCompactProtocol import TCompactProtocolFactory
-from thrift.protocol.TJSONProtocol import TJSONProtocolFactory
 
 
 publisher = None
@@ -39,7 +36,7 @@ port = 0
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run a tornado python server")
+    parser = argparse.ArgumentParser(description="Run a gevent python server")
     parser.add_argument('--port', dest='port', default='9090')
     parser.add_argument('--protocol', dest='protocol_type',
                         default="binary", choices="binary, compact, json")
@@ -48,22 +45,10 @@ def main():
 
     args = parser.parse_args()
 
-    if args.protocol_type == "binary":
-        protocol_factory = FProtocolFactory(TBinaryProtocolFactory())
-    elif args.protocol_type == "compact":
-        protocol_factory = FProtocolFactory(TCompactProtocolFactory())
-    elif args.protocol_type == "json":
-        protocol_factory = FProtocolFactory(TJSONProtocolFactory())
-    else:
-        logging.error("Unknown protocol type: %s", args.protocol_type)
-        sys.exit(1)
+    protocol_factory = get_protocol_factory(args.protocol_type)
 
     nats_client = NATS()
-    options = {
-        "verbose": True,
-        "servers": ["nats://127.0.0.1:4222"]
-    }
-    nats_client.connect(**options)
+    nats_client.connect(**get_nats_options())
 
     global port
     port = args.port

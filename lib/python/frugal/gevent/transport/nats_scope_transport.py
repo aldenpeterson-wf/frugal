@@ -12,9 +12,6 @@ from frugal.transport import FPublisherTransport
 from frugal.transport import FSubscriberTransportFactory
 from frugal.transport import FSubscriberTransport
 
-_FRAME_BUFFER_SIZE = 5
-_FRUGAL_PREFIX = "frugal."
-
 logger = logging.getLogger(__name__)
 
 
@@ -23,13 +20,13 @@ class FNatsPublisherTransportFactory(FPublisherTransportFactory):
         self._nats_client = nats_client
 
     def get_transport(self):
-        return FNatsPublisherTranpsort(self._nats_client)
+        return FNatsPublisherTransport(self._nats_client)
 
 
-class FNatsPublisherTranpsort(FPublisherTransport):
+class FNatsPublisherTransport(FPublisherTransport):
 
     def __init__(self, nats_client):
-        super(FNatsPublisherTranpsort, self).__init__(_NATS_MAX_MESSAGE_SIZE)
+        super(FNatsPublisherTransport, self).__init__(_NATS_MAX_MESSAGE_SIZE)
         self._nats_client = nats_client
 
     def open(self):
@@ -59,7 +56,6 @@ class FNatsPublisherTranpsort(FPublisherTransport):
             raise TTransportException(
                 TTransportException.UNKNOWN,
                 'Error publishing to nats: {e}'.format(e=e))
-
 
 
 class FNatsSubscriberTransportFactory(FSubscriberTransportFactory):

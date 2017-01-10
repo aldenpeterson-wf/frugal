@@ -1,7 +1,7 @@
 from .gevent_transport import FGeventTransport
 from .nats_scope_transport import (
     FNatsPublisherTransportFactory,
-    FNatsPublisherTranpsort,
+    FNatsPublisherTransport,
     FNatsSubscriberTransportFactory,
     FNatsSubscriberTransport,
 )
@@ -12,6 +12,6 @@ __all__ = [
     'FNatsTransport',
     'FNatsPublisherTransportFactory',
     'FNatsSubscriberTransportFactory',
-    'FNatsPublisherTranpsort',
+    'FNatsPublisherTransport',
     'FNatsSubscriberTransport',
 ]

@@ -22,7 +22,7 @@ class FNatsBaseServer(FServer):
         """
         Verifies that the received message has a replyto and a valid framesize.
 
-        :param msg: Nats message received by the
+        :param msg: Nats message received by the server
         :return: True if message is valid, False if not
         """
 
@@ -46,6 +46,6 @@ class FNatsBaseServer(FServer):
         :return: True if message response indicates 1-way, False if not
         """
 
-        # A frame with length 4 indicates a 1-way message as it only includes
-        # the frame size with no data
+        # A frame with length 4 indicates a 1-way message as it only
+        # includes the frame size with no data
         return len(otrans) == 4
