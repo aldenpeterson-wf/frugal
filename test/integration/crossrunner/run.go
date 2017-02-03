@@ -28,17 +28,15 @@ func RunConfig(pair *Pair, port int) {
 
 	// write server log header
 	log.Debug(serverCmd)
-	err = writeFileHeader(pair.Server.Logs, serverCmd, pair.Server.Workdir,
-		pair.Server.Timeout, pair.Client.Timeout)
-	if err != nil {
+	if err = writeFileHeader(pair.Server.Logs, serverCmd, pair.Server.Workdir,
+		pair.Server.Timeout, pair.Client.Timeout); err != nil {
 		reportCrossrunnerFailure(pair, err)
 		return
 	}
 
 	// start the server
 	sStartTime := time.Now()
-	err = server.Start()
-	if err != nil {
+	if err = server.Start(); err != nil {
 		reportCrossrunnerFailure(pair, err)
 		return
 	}
@@ -78,9 +76,8 @@ func RunConfig(pair *Pair, port int) {
 	}
 
 	// write client log header
-	err = writeFileHeader(pair.Client.Logs, clientCmd, pair.Client.Workdir,
-		pair.Server.Timeout, pair.Client.Timeout)
-	if err != nil {
+	if err = writeFileHeader(pair.Client.Logs, clientCmd, pair.Client.Workdir,
+		pair.Server.Timeout, pair.Client.Timeout); err != nil {
 		reportCrossrunnerFailure(pair, err)
 		return
 	}
@@ -104,14 +101,12 @@ func RunConfig(pair *Pair, port int) {
 	case <-time.After(pair.Client.Timeout * time.Second):
 		// TODO: It's a bit annoying to have this message duplicated in the
 		// unexpected_failures.log. Is there a better way to report this?
-		err = writeClientTimeout(pair, pair.Client.Name)
-		if err != nil {
+		if err = writeClientTimeout(pair, pair.Client.Name); err != nil {
 			reportCrossrunnerFailure(pair, err)
 			return
 		}
 
-		err = client.Process.Kill()
-		if err != nil {
+		if err = client.Process.Kill(); err != nil {
 			reportCrossrunnerFailure(pair, err)
 			return
 		}
@@ -126,13 +121,11 @@ func RunConfig(pair *Pair, port int) {
 	}
 
 	// write log footers
-	err = writeFileFooter(pair.Client.Logs, time.Since(cStartTime))
-	if err != nil {
+	if err = writeFileFooter(pair.Client.Logs, time.Since(cStartTime)); err != nil {
 		reportCrossrunnerFailure(pair, err)
 		return
 	}
-	err = writeFileFooter(pair.Server.Logs, time.Since(sStartTime))
-	if err != nil {
+	if err = writeFileFooter(pair.Server.Logs, time.Since(sStartTime)); err != nil {
 		reportCrossrunnerFailure(pair, err)
 		return
 	}

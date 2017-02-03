@@ -1,13 +1,24 @@
 package crossrunner
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
+
+// Registry is used to keep track of which ports have been previously allocated
+// to pairs.
+type Registry struct {
+	mu   sync.Mutex
+	Port map[int]bool
+}
 
 const (
 	// Default timeout in seconds for client/server configutions without a defined timeout
@@ -40,16 +51,36 @@ func getExpandedConfigs(options options, test languages) (apps []config) {
 }
 
 // GetAvailablePort returns an available port.
-func GetAvailablePort() (int, error) {
+func GetAvailablePort(registry Registry, numTries int) (int, error) {
+	// If GetAvailablePort has been called 10 times without success,
+	// throw an error so we don't hit a stack overflow.
+	if numTries > 10 {
+		return 0, errors.New("GetAvailablePort called 10 time without finding open port")
+	}
+	numTries++
 	// Passing 0 allows the OS to select an available port
 	conn, err := net.Listen("tcp", ":0")
 	if err != nil {
 		// If unavailable, skip port
-		return GetAvailablePort()
+		log.Debug("Port already in use. Retrying...")
+		return GetAvailablePort(registry, numTries)
 	}
-	defer conn.Close()
 	// conn.Addr().String returns something like "[::]:49856", trim the first 5 chars
 	port, err := strconv.Atoi(conn.Addr().String()[5:])
+	if err != nil {
+		return 0, err
+	}
+	// check if port is in registry, if so, retry
+	registry.mu.Lock()
+	if _, alreadyAllocated := registry.Port[port]; alreadyAllocated {
+		registry.mu.Unlock()
+		return GetAvailablePort(registry, numTries)
+	} else {
+		// else, add it to the registry and return
+		registry.Port[port] = true
+	}
+	conn.Close()
+	registry.mu.Unlock()
 	return port, err
 }
 

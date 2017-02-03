@@ -61,7 +61,7 @@ func main() {
 
 	// Need to create log directory for Skynet-cli. This isn't an issue on Skynet.
 	if _, err = os.Stat("log"); os.IsNotExist(err) {
-		if err = os.Mkdir("log", 755); err != nil {
+		if err = os.Mkdir("log", 0777); err != nil {
 			panic(err)
 		}
 	}
@@ -112,9 +112,12 @@ func main() {
 		}(crossrunnerTasks)
 	}
 
+	var portRegistry crossrunner.Registry
+	portRegistry.Port = make(map[int]bool)
+
 	// Add each configuration to the crossrunnerTasks channel
 	for _, pair := range pairs {
-		available, err := crossrunner.GetAvailablePort()
+		available, err := crossrunner.GetAvailablePort(portRegistry, 1)
 		if err != nil {
 			panic(err)
 		}
