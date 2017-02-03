@@ -13,6 +13,7 @@ image: drydock-prod.workiva.net/workiva/messaging-docker-images:91836
 
 env:
   - IN_SKYNET_CLI=true
+  - GORACE="halt_on_errors=1"
 
 scripts:
   - ./scripts/skynet/run_cross_skynet.sh
@@ -27,6 +28,9 @@ artifacts:
 name: cross
 
 size: large
+
+env:
+  - GORACE="halt_on_errors=1"
 
 run:
   when-branch-name-is:
