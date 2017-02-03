@@ -79,6 +79,7 @@ func main() {
 	var (
 		testsRun uint64
 		wg       sync.WaitGroup
+		port     int
 	)
 
 	crossrunner.PrintConsoleHeader()
@@ -112,18 +113,14 @@ func main() {
 		}(crossrunnerTasks)
 	}
 
-	var portRegistry crossrunner.Registry
-	portRegistry.Port = make(map[int]bool)
-
+	port = 55000
 	// Add each configuration to the crossrunnerTasks channel
 	for _, pair := range pairs {
-		available, err := crossrunner.GetAvailablePort(portRegistry, 1)
-		if err != nil {
-			panic(err)
-		}
-		tCase := testCase{pair, available}
+		log.Info(port)
+		tCase := testCase{pair, port}
 		// put the test case on the crossrunnerTasks channel
 		crossrunnerTasks <- &tCase
+		port++
 	}
 
 	wg.Wait()
