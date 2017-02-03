@@ -32,8 +32,6 @@ go run scripts/skynet/cross/cross_setup.go
 # without cleaning up
 cd ${FRUGAL_HOME}
 
-export GORACE="halt_on_error" = true
-
 if go run --race test/integration/test.go test/integration/tests.json; then
     /testing/scripts/skynet/test_cleanup.sh
 else
