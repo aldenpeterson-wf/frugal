@@ -113,6 +113,9 @@ func main() {
 		}(crossrunnerTasks)
 	}
 
+	// Start with arbitrarily high port to avoid collisions.
+	// Everything in this range should be clear on Skynet / Skynet-cli
+	// TODO: This could cause issues if run locally or in a different CI
 	port = 55000
 	// Add each configuration to the crossrunnerTasks channel
 	for _, pair := range pairs {
