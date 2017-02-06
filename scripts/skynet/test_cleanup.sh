@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-lsof
+lsof > /testing/artifacts/lsof_after.txt
 
 cd $GOPATH/src/github.com/Workiva/frugal
 FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal

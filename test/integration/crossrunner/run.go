@@ -5,6 +5,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"os"
 )
 
 // RunConfig runs a client against a server.  Client/Server logs are created and
@@ -65,8 +66,9 @@ func RunConfig(pair *Pair, port int) {
 	}*/
 	time.Sleep(stimeout)
 
-	/*
-	if total >= stimeout {
+
+	if server.ProcessState == os.ProcessState.Exited(){
+
 		err = writeServerTimeout(pair.Server.Logs, pair.Server.Name)
 		pair.ReturnCode = TestFailure
 		pair.Err = errors.New("Server has not started within the specified timeout")
@@ -75,7 +77,7 @@ func RunConfig(pair *Pair, port int) {
 		// Process is killed in the deferred function above
 		return
 	}
-	*/
+
 
 	// write client log header
 	if err = writeFileHeader(pair.Client.Logs, clientCmd, pair.Client.Workdir,
