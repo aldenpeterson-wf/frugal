@@ -3,7 +3,7 @@
     "name": "py:asyncio",
     "server": {
       "timeout": 7,
-      "command": [ "/Users/aldenpeterson/.virtualenvs/frugal3/bin/python", "-u", "server.py" ]
+      "command": [ "python3.5", "-u", "server.py" ]
     },
     "transports": [ "http" ],
     "protocols": [ "binary" ],
@@ -13,7 +13,7 @@
     "name": "py:vanilla",
     "client": {
       "timeout": 7,
-      "command": [ "/Users/aldenpeterson/.virtualenvs/frugal/bin/python", "-u", "vanilla_client.py" ]
+      "command": [ "python", "-u", "vanilla_client.py" ]
     },
     "transports": [ "http" ],
     "protocols": [ "binary"],
