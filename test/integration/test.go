@@ -98,7 +98,8 @@ func main() {
 				log.Info(task.pair.Server.Command)
 				crossrunner.RunConfig(task.pair, task.port)
 				// Check return code
-				if task.pair.ReturnCode == crossrunner.TestFailure {
+				if task.pair.ReturnCode == crossrunner.TestFailure ||
+				task.pair.ReturnCode == crossrunner.CrossrunnerFailure{
 					// if failed, add to the failed count
 					failLog.mu.Lock()
 					failLog.failed += 1
@@ -106,11 +107,18 @@ func main() {
 					if err := crossrunner.AppendToFailures(failLog.path, task.pair); err != nil {
 						log.Infof("Failed pair with error: %v", err)
 					}
+					if task.pair.ReturnCode == crossrunner.CrossrunnerFailure {
+						log.Infof("Crossrunner error: %v", task.pair.Err)
+					}
 					failLog.mu.Unlock()
-				} else if task.pair.ReturnCode == crossrunner.CrossrunnerFailure {
-					// If there was a crossrunner failure, fail immediately
-					log.Infof("Crossrunner error: %v", task.pair.Err)
+
+
 				}
+
+				//} else if task.pair.ReturnCode == crossrunner.CrossrunnerFailure {
+				//	// If there was a crossrunner failure, fail immediately
+				//	log.Infof("Crossrunner error: %v", task.pair.Err)
+				//}
 				// Print configuration results to console
 				crossrunner.PrintPairResult(task.pair)
 				// Increment the count of tests run
