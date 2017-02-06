@@ -2,10 +2,10 @@
 
 set -exo pipefail
 
-apt-get update -y
-apt-get install lsof -y
-
-lsof > /testing/artifacts/lsof_before.txt
+#apt-get update -y
+#apt-get install lsof -y
+#
+#lsof > /testing/artifacts/lsof_before.txt
 
 ./scripts/skynet/skynet_setup.sh
 

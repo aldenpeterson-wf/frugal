@@ -104,7 +104,7 @@ func main() {
 					failLog.failed += 1
 					// copy the logs to the unexpected_failures.log file
 					if err := crossrunner.AppendToFailures(failLog.path, task.pair); err != nil {
-						panic(err)
+						log.Infof("Failed pair with error: %v", err)
 					}
 					failLog.mu.Unlock()
 				} else if task.pair.ReturnCode == crossrunner.CrossrunnerFailure {
@@ -160,12 +160,12 @@ func main() {
 
 func isPortAvailable(port int) bool {
 	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	defer conn.Close()
+
 	if err != nil {
 		log.Infof("Connection error: %v for port %v", err, port)
 		return false
 	} else {
-
-		conn.Close()
 		return true
 	}
 
