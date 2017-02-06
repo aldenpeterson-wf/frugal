@@ -41,7 +41,7 @@ func main() {
 	}
 
 	// TODO: Allow setting loglevel to debug with -V flag/-debug/similar
-	// log.SetLevel(log.DebugLevel)
+	 log.SetLevel(log.DebugLevel)
 
 	// pairs is a struct of valid client/server pairs loaded from the provided
 	// json file
