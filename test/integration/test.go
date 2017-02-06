@@ -84,7 +84,8 @@ func main() {
 
 	crossrunner.PrintConsoleHeader()
 
-	for workers := 1; workers <= int(runtime.NumCPU()); workers++ {
+	for workers := 1; workers <= int(2); workers++ {
+	//for workers := 1; workers <= int(runtime.NumCPU()); workers++ {
 		go func(crossrunnerTasks <-chan *testCase) {
 			for task := range crossrunnerTasks {
 				wg.Add(1)
