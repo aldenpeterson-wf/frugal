@@ -48,7 +48,7 @@ func RunConfig(pair *Pair, port int) {
 		}
 	}()
 	stimeout := pair.Server.Timeout * time.Millisecond * 1000
-	var total time.Duration
+	//var total time.Duration
 	// Poll the server healthcheck until it returns a valid status code or exceeds the timeout
 	/*
 	for total <= stimeout {
