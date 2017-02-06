@@ -138,5 +138,7 @@ func RunConfig(pair *Pair, port int) {
 func reportCrossrunnerFailure(pair *Pair, err error) {
 	pair.ReturnCode = CrossrunnerFailure
 	pair.Err = err
-	return
+	log.Info(pair.Client.Command)
+	log.Info(pair.Server.Command)
+	panic(err)
 }
