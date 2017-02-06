@@ -94,8 +94,7 @@ func main() {
 			for task := range crossrunnerTasks {
 				wg.Add(1)
 				// Run each configuration
-				log.Info(task.pair.Client.Command)
-				log.Info(task.pair.Server.Command)
+				log.Info("Client: %v\nServer: %v\nPort:%v", task.pair.Client.Command, task.pair.Server.Command, port)
 				crossrunner.RunConfig(task.pair, task.port)
 				// Check return code
 				if task.pair.ReturnCode == crossrunner.TestFailure ||
@@ -115,10 +114,6 @@ func main() {
 
 				}
 
-				//} else if task.pair.ReturnCode == crossrunner.CrossrunnerFailure {
-				//	// If there was a crossrunner failure, fail immediately
-				//	log.Infof("Crossrunner error: %v", task.pair.Err)
-				//}
 				// Print configuration results to console
 				crossrunner.PrintPairResult(task.pair)
 				// Increment the count of tests run

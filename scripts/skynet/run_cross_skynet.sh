@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 set -exo pipefail
-
+#
 #apt-get update -y
 #apt-get install lsof -y
+#apt-get install auditd -y
 #
 #lsof > /testing/artifacts/lsof_before.txt
 
