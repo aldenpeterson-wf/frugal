@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -ex
 
+lsof
+
 cd $GOPATH/src/github.com/Workiva/frugal
 FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal
 
