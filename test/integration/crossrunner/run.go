@@ -2,8 +2,6 @@ package crossrunner
 
 import (
 	"errors"
-	"fmt"
-	"net/http"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -52,6 +50,7 @@ func RunConfig(pair *Pair, port int) {
 	stimeout := pair.Server.Timeout * time.Millisecond * 1000
 	var total time.Duration
 	// Poll the server healthcheck until it returns a valid status code or exceeds the timeout
+	/*
 	for total <= stimeout {
 		// If the server hasn't started within the specified timeout, fail the test
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%d", port))
@@ -63,7 +62,8 @@ func RunConfig(pair *Pair, port int) {
 		resp.Close = true
 		resp.Body.Close()
 		break
-	}
+	}*/
+	time.Sleep(stimeout)
 
 	if total >= stimeout {
 		err = writeServerTimeout(pair.Server.Logs, pair.Server.Name)

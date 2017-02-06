@@ -9,6 +9,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	"github.com/Workiva/frugal/test/integration/crossrunner"
+	"runtime"
 )
 
 // a testCase is a pointer to a valid test pair (client/server) and port to run
@@ -83,11 +84,10 @@ func main() {
 
 	crossrunner.PrintConsoleHeader()
 
-	numbProcs := 2
+	numbProcs := int(runtime.NumCPU())
 	log.Infof("Running %d workers", numbProcs)
 
 	for workers := 1; workers <= numbProcs; workers++ {
-	//for workers := 1; workers <= int(runtime.NumCPU()); workers++ {
 		go func(crossrunnerTasks <-chan *testCase) {
 			for task := range crossrunnerTasks {
 				wg.Add(1)
