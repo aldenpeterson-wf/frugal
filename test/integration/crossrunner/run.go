@@ -7,6 +7,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"os"
 	"syscall"
+	"net/http"
+	"fmt"
 )
 
 // RunConfig runs a client against a server.  Client/Server logs are created and
@@ -50,22 +52,22 @@ func RunConfig(pair *Pair, port int) {
 		}
 	}()
 	stimeout := pair.Server.Timeout * time.Millisecond * 1000
-	//var total time.Duration
+	var total time.Duration
 	// Poll the server healthcheck until it returns a valid status code or exceeds the timeout
-	/*
-		for total <= stimeout {
-			// If the server hasn't started within the specified timeout, fail the test
-			resp, err := http.Get(fmt.Sprintf("http://localhost:%d", port))
-			if err != nil {
-				time.Sleep(time.Millisecond * 250)
-				total += (time.Millisecond * 250)
-				continue
-			}
-			resp.Close = true
-			resp.Body.Close()
-			break
-		}*/
-	time.Sleep(stimeout)
+
+	for total <= stimeout {
+		// If the server hasn't started within the specified timeout, fail the test
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d", port))
+		if err != nil {
+			time.Sleep(time.Millisecond * 250)
+			total += (time.Millisecond * 250)
+			continue
+		}
+		resp.Close = true
+		resp.Body.Close()
+		break
+	}
+	//time.Sleep(stimeout)
 
 	process, err := os.FindProcess(int(server.Process.Pid))
 	if err != nil {
