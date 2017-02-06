@@ -2,6 +2,10 @@
 
 set -exo pipefail
 
+apt-get update -y
+apt-get install lsof -y
+lsof
+
 ./scripts/skynet/skynet_setup.sh
 
 export FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal
