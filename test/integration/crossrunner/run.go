@@ -146,5 +146,5 @@ func reportCrossrunnerFailure(pair *Pair, err error) {
 	pair.Err = err
 	log.Infof("Failing client command: %v", pair.Client.Command)
 	log.Infof("Failing server command: %v", pair.Server.Command)
-	panic(err)
+	return
 }
