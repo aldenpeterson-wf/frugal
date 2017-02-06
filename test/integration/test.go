@@ -8,9 +8,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"fmt"
+
 	"github.com/Workiva/frugal/test/integration/crossrunner"
-	"net"
+
 	"runtime"
 )
 
@@ -126,7 +126,7 @@ func main() {
 	port = 55000
 	// Add each configuration to the crossrunnerTasks channel
 	for _, pair := range pairs {
-		isPortAvailable(port)
+		crossrunner.IsPortAvailable(port)
 		tCase := testCase{pair, port}
 		// put the test case on the crossrunnerTasks channel
 		crossrunnerTasks <- &tCase
@@ -158,17 +158,4 @@ func main() {
 	}
 }
 
-func isPortAvailable(port int) bool {
-	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 
-	if err != nil {
-		log.Infof("Connection error: %v for port %v", err, port)
-		return false
-	} else {
-		log.Infof("Connection FOUND for port %v", port)
-		conn.Close()
-
-		return true
-	}
-
-}

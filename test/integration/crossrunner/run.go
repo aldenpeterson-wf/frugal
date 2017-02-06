@@ -9,8 +9,22 @@ import (
 	"syscall"
 	"net/http"
 	"fmt"
+	"net"
 )
+func IsPortAvailable(port int) bool {
+	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 
+	if err != nil {
+		log.Infof("Connection error: %v for port %v", err, port)
+		return false
+	} else {
+		log.Infof("CONNECTION FOUND for port %v", port)
+		conn.Close()
+
+		return true
+	}
+
+}
 // RunConfig runs a client against a server.  Client/Server logs are created and
 // failures are added to the unexpected_failures.log.  Each result is logged to
 // the console.
@@ -38,6 +52,7 @@ func RunConfig(pair *Pair, port int) {
 
 	// start the server
 	sStartTime := time.Now()
+	IsPortAvailable(port)
 	if err = server.Start(); err != nil {
 		reportCrossrunnerFailure(pair, err)
 		return
