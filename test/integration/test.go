@@ -166,6 +166,7 @@ func isPortAvailable(port int) bool {
 		log.Infof("Connection error: %v for port %v", err, port)
 		return false
 	} else {
+		log.Infof("Connection FOUND for port %v", port)
 		return true
 	}
 
