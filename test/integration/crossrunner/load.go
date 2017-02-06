@@ -103,7 +103,7 @@ func Load(jsonFile string) (pairs []*Pair, err error) {
 	}
 
 	// Hack
-	for i :=0;i < 1000; i++ {
+	for i :=0;i < 250; i++ {
 		pairs = append(pairs, newPair(clients[1], servers[0]))
 
 	}
