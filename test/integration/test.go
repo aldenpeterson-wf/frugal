@@ -8,10 +8,10 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/Workiva/frugal/test/integration/crossrunner"
-	"runtime"
-	"net"
 	"fmt"
+	"github.com/Workiva/frugal/test/integration/crossrunner"
+	"net"
+	"runtime"
 )
 
 // a testCase is a pointer to a valid test pair (client/server) and port to run
@@ -43,7 +43,7 @@ func main() {
 	}
 
 	// TODO: Allow setting loglevel to debug with -V flag/-debug/similar
-	 log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.DebugLevel)
 
 	// pairs is a struct of valid client/server pairs loaded from the provided
 	// json file
@@ -160,14 +160,13 @@ func main() {
 
 func isPortAvailable(port int) bool {
 	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
- 	if err != nil {
-                log.Infof("Connection error:%v for port %v", err, port)
-                return false
-        } else {
+	if err != nil {
+		log.Infof("Connection error: %v for port %v", err, port)
+		return false
+	} else {
 
-                conn.Close()
+		conn.Close()
 		return true
-        }
-
+	}
 
 }

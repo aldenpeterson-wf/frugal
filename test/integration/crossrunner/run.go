@@ -5,6 +5,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"os"
+	"syscall"
 )
 
 // RunConfig runs a client against a server.  Client/Server logs are created and
@@ -51,32 +53,35 @@ func RunConfig(pair *Pair, port int) {
 	//var total time.Duration
 	// Poll the server healthcheck until it returns a valid status code or exceeds the timeout
 	/*
-	for total <= stimeout {
-		// If the server hasn't started within the specified timeout, fail the test
-		resp, err := http.Get(fmt.Sprintf("http://localhost:%d", port))
-		if err != nil {
-			time.Sleep(time.Millisecond * 250)
-			total += (time.Millisecond * 250)
-			continue
-		}
-		resp.Close = true
-		resp.Body.Close()
-		break
-	}*/
+		for total <= stimeout {
+			// If the server hasn't started within the specified timeout, fail the test
+			resp, err := http.Get(fmt.Sprintf("http://localhost:%d", port))
+			if err != nil {
+				time.Sleep(time.Millisecond * 250)
+				total += (time.Millisecond * 250)
+				continue
+			}
+			resp.Close = true
+			resp.Body.Close()
+			break
+		}*/
 	time.Sleep(stimeout)
 
-
-	if server.ProcessState.Exited(){
-
-		err = writeServerTimeout(pair.Server.Logs, pair.Server.Name)
-		pair.ReturnCode = TestFailure
-		pair.Err = errors.New("Server has not started within the specified timeout")
-		log.Debug(pair.Server.Name + " server not started within specified timeout")
-		// Even though the healthcheck server hasn't started, the process has.
-		// Process is killed in the deferred function above
-		return
+	process, err := os.FindProcess(int(server.Process.Pid))
+	if err != nil {
+		panic(err)
+	} else {
+		err := process.Signal(syscall.Signal(0))
+		if err != nil {
+			err = writeServerTimeout(pair.Server.Logs, pair.Server.Name)
+			pair.ReturnCode = TestFailure
+			pair.Err = errors.New("Server has not started within the specified timeout")
+			log.Debug(pair.Server.Name + " server not started within specified timeout")
+			// Even though the healthcheck server hasn't started, the process has.
+			// Process is killed in the deferred function above
+			return
+		}
 	}
-
 
 	// write client log header
 	if err = writeFileHeader(pair.Client.Logs, clientCmd, pair.Client.Workdir,
