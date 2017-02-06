@@ -36,11 +36,12 @@ go run scripts/skynet/cross/cross_setup.go
 # without cleaning up
 cd ${FRUGAL_HOME}
 
-lsof
 
 if go run --race test/integration/test.go test/integration/tests.json; then
+	lsof
     /testing/scripts/skynet/test_cleanup.sh
 else
+	lsof
     /testing/scripts/skynet/test_cleanup.sh
     exit 1
 fi
