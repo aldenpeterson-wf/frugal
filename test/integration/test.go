@@ -134,7 +134,7 @@ func main() {
 	port = 55000
 	// Add each configuration to the crossrunnerTasks channel
 	for _, pair := range pairs {
-		crossrunner.IsPortAvailable(port)
+		//crossrunner.IsPortAvailable(port)
 		tCase := testCase{pair, port}
 		// put the test case on the crossrunnerTasks channel
 		crossrunnerTasks <- &tCase
