@@ -53,6 +53,7 @@ func RunConfig(pair *Pair, port int) {
 	var total time.Duration
 	// Poll the server healthcheck until it returns a valid status code or exceeds the timeout
 	for total <= stimeout {
+		time.Sleep(time.Millisecond * 250)
 		// If the server hasn't started within the specified timeout, fail the test
 		resp, err := (http.Get(fmt.Sprintf("http://localhost:%d", port)))
 		if err != nil {
