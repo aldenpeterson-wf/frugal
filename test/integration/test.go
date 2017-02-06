@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -84,7 +83,10 @@ func main() {
 
 	crossrunner.PrintConsoleHeader()
 
-	for workers := 1; workers <= int(2); workers++ {
+	numbProcs := 2
+	log.Infof("Running %d workers", numbProcs)
+
+	for workers := 1; workers <= numbProcs; workers++ {
 	//for workers := 1; workers <= int(runtime.NumCPU()); workers++ {
 		go func(crossrunnerTasks <-chan *testCase) {
 			for task := range crossrunnerTasks {
