@@ -109,7 +109,7 @@ func main() {
 					failLog.mu.Unlock()
 				} else if task.pair.ReturnCode == crossrunner.CrossrunnerFailure {
 					// If there was a crossrunner failure, fail immediately
-					panic(task.pair.Err)
+					log.Infof("Crossrunner error: %v", task.pair.Err)
 				}
 				// Print configuration results to console
 				crossrunner.PrintPairResult(task.pair)
