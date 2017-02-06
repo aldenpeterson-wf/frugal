@@ -65,6 +65,7 @@ func RunConfig(pair *Pair, port int) {
 	}*/
 	time.Sleep(stimeout)
 
+	/*
 	if total >= stimeout {
 		err = writeServerTimeout(pair.Server.Logs, pair.Server.Name)
 		pair.ReturnCode = TestFailure
@@ -74,6 +75,7 @@ func RunConfig(pair *Pair, port int) {
 		// Process is killed in the deferred function above
 		return
 	}
+	*/
 
 	// write client log header
 	if err = writeFileHeader(pair.Client.Logs, clientCmd, pair.Client.Workdir,
