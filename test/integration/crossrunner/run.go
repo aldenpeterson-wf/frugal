@@ -67,7 +67,7 @@ func RunConfig(pair *Pair, port int) {
 	time.Sleep(stimeout)
 
 
-	if server.ProcessState == os.ProcessState.Exited(){
+	if server.ProcessState.Exited(){
 
 		err = writeServerTimeout(pair.Server.Logs, pair.Server.Name)
 		pair.ReturnCode = TestFailure
@@ -140,7 +140,7 @@ func RunConfig(pair *Pair, port int) {
 func reportCrossrunnerFailure(pair *Pair, err error) {
 	pair.ReturnCode = CrossrunnerFailure
 	pair.Err = err
-	log.Info(pair.Client.Command)
-	log.Info(pair.Server.Command)
+	log.Infof("Failing client command: %v", pair.Client.Command)
+	log.Infof("Failing server command: %v", pair.Server.Command)
 	panic(err)
 }
