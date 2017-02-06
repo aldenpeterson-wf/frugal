@@ -42,3 +42,5 @@ else
     /testing/scripts/skynet/test_cleanup.sh
     exit 1
 fi
+
+lsof
