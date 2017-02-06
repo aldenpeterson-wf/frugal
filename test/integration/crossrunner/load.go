@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"time"
+	log "github.com/Sirupsen/logrus"
 )
 
 // client/server level options defined in tests.json
@@ -86,16 +87,27 @@ func Load(jsonFile string) (pairs []*Pair, err error) {
 		servers = append(servers, getExpandedConfigs(test.Server, test)...)
 	}
 
+	log.Infof("Clients: %v", clients)
+	log.Infof("Servers: %v", servers)
+
 	// Find all valid client/server pairs
 	// TODO: Accept some sort of flag(s) that would limit this list of pairs by
 	// desired language(s) or other restrictions
 	for _, client := range clients {
 		for _, server := range servers {
 			if server.Transport == client.Transport && server.Protocol == client.Protocol {
-				pairs = append(pairs, newPair(client, server))
+				//log.Infof("Creating pair with server=%v and client=%v", server, client)
+				//pairs = append(pairs, newPair(client, server))
 			}
 		}
 	}
 
+	// Hack
+	for i :=0;i < 1000; i++ {
+		pairs = append(pairs, newPair(clients[1], servers[0]))
+
+	}
+
+	log.Infof("Created %v pairs", len(pairs))
 	return pairs, nil
 }

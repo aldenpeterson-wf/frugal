@@ -87,6 +87,7 @@ func main() {
 	crossrunner.PrintConsoleHeader()
 
 	numbProcs := int(runtime.NumCPU())
+	//numbProcs = 1
 	log.Infof("Running %d workers", numbProcs)
 
 	for workers := 1; workers <= numbProcs; workers++ {
