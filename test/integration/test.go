@@ -10,6 +10,8 @@ import (
 
 	"github.com/Workiva/frugal/test/integration/crossrunner"
 	"runtime"
+	"net"
+	"fmt"
 )
 
 // a testCase is a pointer to a valid test pair (client/server) and port to run
@@ -124,6 +126,7 @@ func main() {
 	port = 55000
 	// Add each configuration to the crossrunnerTasks channel
 	for _, pair := range pairs {
+		isPortAvailable(port)
 		tCase := testCase{pair, port}
 		// put the test case on the crossrunnerTasks channel
 		crossrunnerTasks <- &tCase
@@ -153,4 +156,18 @@ func main() {
 			log.Info("Unable to remove empty unexpected_failures.log")
 		}
 	}
+}
+
+func isPortAvailable(port int) bool {
+	conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+ 	if err != nil {
+                log.Infof("Connection error:%v for port %v", err, port)
+                return false
+        } else {
+
+                conn.Close()
+		return true
+        }
+
+
 }
