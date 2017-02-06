@@ -4,7 +4,7 @@ set -exo pipefail
 
 apt-get update -y
 apt-get install lsof -y
-lsof
+lsof -i
 
 ./scripts/skynet/skynet_setup.sh
 
