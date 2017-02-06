@@ -5,7 +5,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"os"
 )
 
 // RunConfig runs a client against a server.  Client/Server logs are created and
