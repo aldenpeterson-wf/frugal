@@ -14,17 +14,17 @@ import (
 // the console.
 func RunConfig(pair *Pair, port int) {
 	// Create client/server log files
-	err := createLogs(pair, port)
-	if err != nil {
-		reportCrossrunnerFailure(pair, err)
-		return
-	}
-	defer pair.Client.Logs.Close()
-	defer pair.Server.Logs.Close()
+	//err := createLogs(pair, port)
+	//if err != nil {
+	//	reportCrossrunnerFailure(pair, err)
+	//	return
+	//}
+	//defer pair.Client.Logs.Close()
+	//defer pair.Server.Logs.Close()
 
 	// Get server and client command structs
-	server, serverCmd := getCommand(pair.Server, port)
-	client, clientCmd := getCommand(pair.Client, port)
+	server, serverCmd := getCommand(pair.Server, port, true)
+	client, clientCmd := getCommand(pair.Client, port, false)
 
 	// write server log header
 	log.Debug(serverCmd)
@@ -35,22 +35,22 @@ func RunConfig(pair *Pair, port int) {
 	//}
 
 	// start the server
-	sStartTime := time.Now()
-	if err = server.Start(); err != nil {
+	//sStartTime := time.Now()
+	if err := server.Start(); err != nil {
 		reportCrossrunnerFailure(pair, err)
 		return
 	}
 	// Defer stopping the server to ensure the process is killed on exit
 	defer func() {
-		err = server.Process.Kill()
+		err := server.Process.Kill()
 		if err != nil {
 			pair.ReturnCode = CrossrunnerFailure
 			pair.Err = err
 			log.Info("Failed to kill " + pair.Server.Name + " server.")
 		}
 	}()
-	stimeout := pair.Server.Timeout * time.Millisecond * 1000
-	var total time.Duration
+	//stimeout := pair.Server.Timeout * time.Millisecond * 1000
+	//var total time.Duration
 //	 var netTransport = &http.Transport{
 //DisableKeepAlives: false,
 //	}
@@ -74,33 +74,32 @@ func RunConfig(pair *Pair, port int) {
 	//	break
 	//}
 
-	time.Sleep(time.Second * 1)
-	if total >= stimeout {
-		log.Info(err)
-		err = writeServerTimeout(pair.Server.Logs, pair.Server.Name)
-		pair.ReturnCode = TestFailure
-		pair.Err = errors.New("Server has not started within the specified timeout")
-		log.Debug(pair.Server.Name + " server not started within specified timeout")
-		// Even though the healthcheck server hasn't started, the process has.
-		// Process is killed in the deferred function above
-		return
-
-	}
+	time.Sleep(time.Millisecond * 500)
+	//if total >= stimeout {
+	//	log(pair.Server.Logs, pair.Server.Name)
+	//	pair.ReturnCode = TestFailure
+	//	pair.Err = errors.New("Server has not started within the specified timeout")
+	//	log.Debug(pair.Server.Name + " server not started within specified timeout")
+	//	// Even though the healthcheck server hasn't started, the process has.
+	//	// Process is killed in the deferred function above
+	//	return
+	//
+	//}
 
 
 	// write client log header
-	if err = writeFileHeader(pair.Client.Logs, clientCmd, pair.Client.Workdir,
-		pair.Server.Timeout, pair.Client.Timeout); err != nil {
-		reportCrossrunnerFailure(pair, err)
-		return
-	}
+	//if err = writeFileHeader(pair.Client.Logs, clientCmd, pair.Client.Workdir,
+	//	pair.Server.Timeout, pair.Client.Timeout); err != nil {
+	//	reportCrossrunnerFailure(pair, err)
+	//	return
+	//}
 
 	// start client
 	done := make(chan error, 1)
 	log.Debug(clientCmd)
-	cStartTime := time.Now()
+	//cStartTime := time.Now()
 
-	err = client.Start()
+	err := client.Start()
 	if err != nil {
 		pair.ReturnCode = TestFailure
 		pair.Err = err
@@ -114,10 +113,10 @@ func RunConfig(pair *Pair, port int) {
 	case <-time.After(pair.Client.Timeout * time.Second):
 		// TODO: It's a bit annoying to have this message duplicated in the
 		// unexpected_failures.log. Is there a better way to report this?
-		if err = writeClientTimeout(pair, pair.Client.Name); err != nil {
-			reportCrossrunnerFailure(pair, err)
-			return
-		}
+		//if err = writeClientTimeout(pair, pair.Client.Name); err != nil {
+		//	reportCrossrunnerFailure(pair, err)
+		//	return
+		//}
 
 		if err = client.Process.Kill(); err != nil {
 			reportCrossrunnerFailure(pair, err)
@@ -134,14 +133,14 @@ func RunConfig(pair *Pair, port int) {
 	}
 
 	// write log footers
-	if err = writeFileFooter(pair.Client.Logs, time.Since(cStartTime)); err != nil {
-		reportCrossrunnerFailure(pair, err)
-		return
-	}
-	if err = writeFileFooter(pair.Server.Logs, time.Since(sStartTime)); err != nil {
-		reportCrossrunnerFailure(pair, err)
-		return
-	}
+	//if err = writeFileFooter(pair.Client.Logs, time.Since(cStartTime)); err != nil {
+	//	reportCrossrunnerFailure(pair, err)
+	//	return
+	//}
+	//if err = writeFileFooter(pair.Server.Logs, time.Since(sStartTime)); err != nil {
+	//	reportCrossrunnerFailure(pair, err)
+	//	return
+	//}
 }
 
 // reportCrossrunnerFailure is used in the error case when something goes wrong

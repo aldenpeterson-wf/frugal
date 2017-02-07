@@ -62,21 +62,21 @@ func main() {
 	}
 
 	// Need to create log directory for Skynet-cli. This isn't an issue on Skynet.
-	if _, err = os.Stat("log"); os.IsNotExist(err) {
-		if err = os.Mkdir("log", 0777); err != nil {
-			panic(err)
-		}
-	}
+	//if _, err = os.Stat("log"); os.IsNotExist(err) {
+	//	if err = os.Mkdir("log", 0777); err != nil {
+	//		panic(err)
+	//	}
+	//}
 	// Make log file for unexpected failures
 	failLog := &failures{
 		path: "log/unexpected_failures.log",
 	}
-	if file, err := os.Create(failLog.path); err != nil {
-		panic(err)
-	} else {
-		failLog.file = file
-	}
-	defer failLog.file.Close()
+	//if file, err := os.Create(failLog.path); err != nil {
+	//	panic(err)
+	//} else {
+	//	failLog.file = file
+	//}
+	//defer failLog.file.Close()
 
 	var (
 		testsRun uint64
@@ -104,9 +104,9 @@ func main() {
 					failLog.mu.Lock()
 					failLog.failed += 1
 					// copy the logs to the unexpected_failures.log file
-					if err := crossrunner.AppendToFailures(failLog.path, task.pair); err != nil {
-						log.Infof("Failed pair with error: %v", err)
-					}
+					//if err := crossrunner.AppendToFailures(failLog.path, task.pair); err != nil {
+					//	log.Infof("Failed pair with error: %v", err)
+					//}
 					if task.pair.ReturnCode == crossrunner.CrossrunnerFailure {
 						log.Infof("Crossrunner error: %v", task.pair.Err)
 					}

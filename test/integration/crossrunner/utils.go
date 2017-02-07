@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+	"os"
 )
 
 const (
@@ -39,7 +40,7 @@ func getExpandedConfigs(options options, test languages) (apps []config) {
 
 // getCommand returns a Cmd struct used to execute a client or server and a
 // nicely formatted string for verbose loggings
-func getCommand(config config, port int) (cmd *exec.Cmd, formatted string) {
+func getCommand(config config, port int, isServer bool) (cmd *exec.Cmd, formatted string) {
 	var args []string
 
 	command := config.Command[0]
@@ -54,8 +55,10 @@ func getCommand(config config, port int) (cmd *exec.Cmd, formatted string) {
 
 	cmd = exec.Command(command, args...)
 	cmd.Dir = config.Workdir
-	cmd.Stdout = config.Logs
-	cmd.Stderr = config.Logs
+	if (isServer) {
+		//cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
 
 	// Nicely format command here for use at the top of each log file
 	formatted = fmt.Sprintf("%s %s", command, strings.Trim(fmt.Sprint(args), "[]"))
