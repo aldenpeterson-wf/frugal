@@ -9,22 +9,24 @@ import (
 
 // createLogs creates client and server log files with the following format:
 // log/clientName-serverName_transport_protocol_role.log.
-func createLogs(pair *Pair) (err error) {
-	pair.Client.Logs, err = os.Create(fmt.Sprintf("log/%s-%s_%s_%s_%s.log",
+func createLogs(pair *Pair, port int) (err error) {
+	pair.Client.Logs, err = os.Create(fmt.Sprintf("log/%s-%s_%s_%s_%v_%s.log",
 		pair.Client.Name,
 		pair.Server.Name,
 		pair.Client.Protocol,
 		pair.Client.Transport,
+		port,
 		"client"))
 	if err != nil {
 		return err
 	}
 
-	pair.Server.Logs, err = os.Create(fmt.Sprintf("log/%s-%s_%s_%s_%s.log",
+	pair.Server.Logs, err = os.Create(fmt.Sprintf("log/%s-%s_%s_%s_%v_%s.log",
 		pair.Client.Name,
 		pair.Server.Name,
 		pair.Server.Protocol,
 		pair.Server.Transport,
+		port,
 		"server"))
 	if err != nil {
 		return err
@@ -104,14 +106,17 @@ func PrintConsoleHeader() {
 }
 
 // PrintPairResult prints a formatted pair result to the console.
-func PrintPairResult(pair *Pair) {
+func PrintPairResult(pair *Pair, port int) {
 	var result string
 	if pair.ReturnCode == 0 {
 		result = "success"
 	} else {
 		// Colorize failures red - this probably only works in Linux
-		result = "\x1b[31;1mFAILURE\x1b[37;1m"
+		result = fmt.Sprintf("\x1b[31;1mFAILURE\x1b[37;1m %v", port)
 	}
+
+
+
 
 	fmt.Printf("%-35s%-15s%-25s%-20s\n",
 		fmt.Sprintf("%s-%s",

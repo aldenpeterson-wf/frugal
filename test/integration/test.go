@@ -116,7 +116,7 @@ func main() {
 				}
 
 				// Print configuration results to console
-				crossrunner.PrintPairResult(task.pair)
+				crossrunner.PrintPairResult(task.pair, task.port)
 				// Increment the count of tests run
 				atomic.AddUint64(&testsRun, 1)
 				wg.Done()
@@ -148,10 +148,10 @@ func main() {
 	// If any configurations failed, fail the suite.
 	if failLog.failed > 0 {
 		// If there was a failure, move the logs to correct artifact location
-		err := os.Rename(failLog.path, "/testing/artifacts/unexpected_failures.log")
-		if err != nil {
-			log.Info("Unable to move unexpected_failures.log")
-		}
+		//err := os.Rename(failLog.path, "/testing/artifacts/unexpected_failures.log")
+		//if err != nil {
+		//	log.Info("Unable to move unexpected_failures.log")
+		//}
 		os.Exit(1)
 	} else {
 		// If there were no failures, remove the failures file.

@@ -40,14 +40,15 @@ async def main():
 
     protocol_factory = get_protocol_factory(args.protocol_type)
 
-    nats_client = NatsClient()
-    await nats_client.connect(**get_nats_options())
+    # nats_client = NatsClient()
+    # await nats_client.connect(**get_nats_options())
 
     transport = None
 
     if args.transport_type in ["stateless", "stateless-stateful"]:
-        transport = FNatsTransport(nats_client, "frugal.foo.bar.{}".format(args.port))
-        await transport.open()
+        # transport = FNatsTransport(nats_client, "frugal.foo.bar.{}".format(args.port))
+        # await transport.open()
+        pass
     elif args.transport_type == "http":
         transport = FHttpTransport("http://localhost:{port}".format(port=args.port))
     else:
@@ -58,9 +59,9 @@ async def main():
     ctx = FContext("test")
 
     await test_rpc(client, ctx)
-    await test_pub_sub(nats_client, protocol_factory, args.port)
+    # await test_pub_sub(nats_client, protocol_factory, args.port)
 
-    await nats_client.close()
+    # await nats_client.close()
 
 
 async def test_rpc(client, ctx):

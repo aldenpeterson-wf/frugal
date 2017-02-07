@@ -4,19 +4,13 @@
     "server": {
       "timeout": 7,
       "command": [ "python3.5", "-u", "server.py" ]
+    },"client": {
+      "timeout": 7,
+      "command": [ "python3.5", "-u", "client.py" ]
     },
+
     "transports": [ "http" ],
     "protocols": [ "binary" ],
     "workdir": "python/asyncio"
-  },
-  {
-    "name": "py:vanilla",
-    "client": {
-      "timeout": 7,
-      "command": [ "python", "-u", "vanilla_client.py" ]
-    },
-    "transports": [ "http" ],
-    "protocols": [ "binary"],
-    "workdir": "python/tornado"
   }
 ]

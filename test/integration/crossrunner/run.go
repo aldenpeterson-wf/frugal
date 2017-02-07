@@ -2,8 +2,8 @@ package crossrunner
 
 import (
 	"errors"
-	"fmt"
-	"net/http"
+	//"fmt"
+	//"net/http"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -14,7 +14,7 @@ import (
 // the console.
 func RunConfig(pair *Pair, port int) {
 	// Create client/server log files
-	err := createLogs(pair)
+	err := createLogs(pair, port)
 	if err != nil {
 		reportCrossrunnerFailure(pair, err)
 		return
@@ -28,11 +28,11 @@ func RunConfig(pair *Pair, port int) {
 
 	// write server log header
 	log.Debug(serverCmd)
-	if err = writeFileHeader(pair.Server.Logs, serverCmd, pair.Server.Workdir,
-		pair.Server.Timeout, pair.Client.Timeout); err != nil {
-		reportCrossrunnerFailure(pair, err)
-		return
-	}
+	//if err = writeFileHeader(pair.Server.Logs, serverCmd, pair.Server.Workdir,
+	//	pair.Server.Timeout, pair.Client.Timeout); err != nil {
+	//	reportCrossrunnerFailure(pair, err)
+	//	return
+	//}
 
 	// start the server
 	sStartTime := time.Now()
@@ -51,21 +51,32 @@ func RunConfig(pair *Pair, port int) {
 	}()
 	stimeout := pair.Server.Timeout * time.Millisecond * 1000
 	var total time.Duration
-	// Poll the server healthcheck until it returns a valid status code or exceeds the timeout
-	for total <= stimeout {
-		// If the server hasn't started within the specified timeout, fail the test
-		resp, err := http.Get(fmt.Sprintf("http://localhost:%d", port))
-		if err != nil {
-			time.Sleep(time.Millisecond * 250)
-			total += time.Millisecond * 250
-			continue
-		}
-		resp.Close = true
-		resp.Body.Close()
-		break
-	}
+//	 var netTransport = &http.Transport{
+//DisableKeepAlives: false,
+//	}
+//
+//	var httpClient = &http.Client{
+//		  Timeout: stimeout,
+//			Transport: netTransport,
+//		}
+	 // Poll the server healthcheck until it returns a valid status code or exceeds the timeout
+	//for total <= stimeout {
+	//	// If the server hasn't started within the specified timeout, fail the test
+	//	resp, err := http.Get(fmt.Sprintf("http://localhost:%d", port))
+	//	//log.Info(resp)
+	//	if err != nil {
+	//		time.Sleep(time.Millisecond * 250)
+	//		total += time.Millisecond * 250
+	//		continue
+	//	}
+	//	resp.Close = true
+	//	resp.Body.Close()
+	//	break
+	//}
 
+	time.Sleep(time.Second * 1)
 	if total >= stimeout {
+		log.Info(err)
 		err = writeServerTimeout(pair.Server.Logs, pair.Server.Name)
 		pair.ReturnCode = TestFailure
 		pair.Err = errors.New("Server has not started within the specified timeout")
@@ -73,7 +84,9 @@ func RunConfig(pair *Pair, port int) {
 		// Even though the healthcheck server hasn't started, the process has.
 		// Process is killed in the deferred function above
 		return
+
 	}
+
 
 	// write client log header
 	if err = writeFileHeader(pair.Client.Logs, clientCmd, pair.Client.Workdir,
