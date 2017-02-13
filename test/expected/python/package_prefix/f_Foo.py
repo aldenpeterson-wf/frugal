@@ -129,7 +129,7 @@ class _get_thing(FProcessorFunction):
                 return
         except Exception as e:
             with self._lock:
-                e = _write_application_exception(ctx, oprot, "get_thing", ex_code=TApplicationExceptionType.UNKNOWN, message=e.message)
+                e = _write_application_exception(ctx, oprot, "get_thing", ex_code=TApplicationExceptionType.INTERNAL_ERROR, message=e.message)
             raise e
         with self._lock:
             try:

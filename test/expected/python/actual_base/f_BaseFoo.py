@@ -124,7 +124,7 @@ class _basePing(FProcessorFunction):
                 return
         except Exception as e:
             with self._lock:
-                e = _write_application_exception(ctx, oprot, "basePing", ex_code=TApplicationExceptionType.UNKNOWN, message=e.message)
+                e = _write_application_exception(ctx, oprot, "basePing", ex_code=TApplicationExceptionType.INTERNAL_ERROR, message=e.message)
             raise e
         with self._lock:
             try:
