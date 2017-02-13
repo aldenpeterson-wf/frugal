@@ -46,7 +46,7 @@ public abstract class FBaseProcessor implements FProcessor {
                         + ctx.getCorrelationId(), e);
                 synchronized (WRITE_LOCK) {
                     writeApplicationException(ctx, oprot, TApplicationExceptionType.INTERNAL_ERROR, message.name,
-                            "Internal error processing " + message.name);
+                            "Internal error processing " + message.name + e);
                 }
                 throw e;
             }

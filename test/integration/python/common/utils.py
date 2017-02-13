@@ -5,8 +5,10 @@ import sys
 from thrift.protocol.TBinaryProtocol import TBinaryProtocolFactory
 from thrift.protocol.TJSONProtocol import TJSONProtocolFactory
 from thrift.protocol.TCompactProtocol import TCompactProtocolFactory
-
+from thrift.Thrift import TApplicationException
 from frugal.protocol import FProtocolFactory
+
+import json
 
 PREAMBLE_HEADER = "preamble"
 RAMBLE_HEADER = "ramble"
@@ -45,7 +47,21 @@ def check_for_failure(actual, expected):
     :return: Bool reflecting failure status
 
     """
-    if expected != actual:
+    failed = False
+    # TApplicationException doesn't implement __eq__ operator
+    if isinstance(expected, TApplicationException):
+        try:
+            if actual._message.find(expected._message) == -1 or actual.type != expected.type:
+                print ('failing')
+                print actual._message.find(expected._message)
+                print actual.type
+                print expected.type
+                failed = True
+        except Exception:
+            failed = True
+    elif expected != actual:
+        failed = True
+    if failed:
         print("Unexpected result, expected:\n{e}\n but received:\n{a} ".format(e=expected, a=actual))
-        return True
-    return False
+
+    return failed

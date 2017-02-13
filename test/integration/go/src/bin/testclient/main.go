@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"git.apache.org/thrift.git/lib/go/thrift"
+
 	"github.com/Workiva/frugal/lib/go"
 	"github.com/Workiva/frugal/test/integration/go/common"
 	"github.com/Workiva/frugal/test/integration/go/gen/frugaltest"
@@ -285,6 +287,18 @@ func callEverything(client *frugaltest.FFrugalTestClient) {
 	if !reflect.DeepEqual(err, &frugaltest.Xception{ErrorCode: 1001, Message: "This is an Xception"}) {
 		log.Fatalf("Unexpected TestMultiException() %#v ", err)
 	}
+
+	err = client.TestUncaughtException(ctx)
+	_, ok := err.(thrift.TApplicationException)
+	 if err == nil || !ok {
+	 	log.Fatalf("Unexpected TestUncaughtException() result expected ApplicationError, got %#v ", err)
+	 }
+
+	err = client.TestUncheckedTApplicationException(ctx)
+	_, ok = err.(thrift.TApplicationException)
+	 if err == nil || !ok {
+	 	log.Fatalf("Unexpected TestUncheckedTApplicationException() result expected ApplicationError, got %#v ", err)
+	 }
 
 	ign, err = client.TestMultiException(ctx, "Xception2", "ignoreme")
 	if ign != nil || err == nil {

@@ -442,6 +442,29 @@ public class TestClient {
             }
 
             /**
+             * UNCHECKED EXCEPTION TEST
+             */
+            try {
+                testClient.testUncaughtException(context);
+                System.out.print("  void\n*** FAILURE ***\n");
+                returnCode |= 1;
+            } catch (TApplicationException e) {
+                System.out.printf("  {\"%s\"}\n", e);
+            }
+
+
+            /**
+             * UNCHECKED TAPPLICATION EXCEPTION TEST
+             */
+            try {
+                testClient.testUncheckedTApplicationException(context);
+                System.out.print("  void\n*** FAILURE ***\n");
+                returnCode |= 1;
+            } catch (TApplicationException e) {
+                System.out.printf("  {\"%s\"}\n", e);
+            }
+
+            /**
              * EXECPTION TEST
              */
             try {
