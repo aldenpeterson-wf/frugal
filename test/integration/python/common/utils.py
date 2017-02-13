@@ -52,10 +52,6 @@ def check_for_failure(actual, expected):
     if isinstance(expected, TApplicationException):
         try:
             if actual._message.find(expected._message) == -1 or actual.type != expected.type:
-                print ('failing')
-                print actual._message.find(expected._message)
-                print actual.type
-                print expected.type
                 failed = True
         except Exception:
             failed = True
