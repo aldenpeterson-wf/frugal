@@ -164,7 +164,7 @@ public class FrugalTestHandler implements FFrugalTest.Iface {
 
         @Override
         public void testUncaughtException(FContext ctx) throws TException {
-            throw new RuntimeException("An uncaught error");
+            throw new TException("An uncaught error (which will be caught in Java");
         }
 
         @Override
