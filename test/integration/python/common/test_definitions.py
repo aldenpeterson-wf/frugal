@@ -118,7 +118,7 @@ def rpc_test_definitions():
         args=[],
         expected_result=e
     )
-    tests = {}
+
     e = TApplicationException(400, 'Unchecked TApplicationException')
     tests['testUncheckedTApplicationException'] = dict(
         args=[],

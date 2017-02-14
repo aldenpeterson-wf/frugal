@@ -145,13 +145,13 @@ public class TestServer {
             }
 
 
-            // Wait for the middleware to be invoked, fail if it exceeds the longest client timeout (currently 20 sec)
-//            if (called.await(20, TimeUnit.SECONDS)) {
-//                System.out.println("Server middleware called successfully");
-//            } else {
-//                System.out.println("Server middleware not called within 20 seconds");
-//                System.exit(1);
-//            }
+             // Wait for the middleware to be invoked, fail if it exceeds the longest client timeout (currently 20 sec)
+            if (called.await(20, TimeUnit.SECONDS)) {
+                System.out.println("Server middleware called successfully");
+            } else {
+                System.out.println("Server middleware not called within 20 seconds");
+                System.exit(1);
+            }
 
         } catch (Exception x) {
             x.printStackTrace();
