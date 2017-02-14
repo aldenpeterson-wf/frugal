@@ -113,12 +113,12 @@ def rpc_test_definitions():
         args=['Xception2', 'ignoreme'],
         expected_result=e
     )
-
     e = TApplicationException(TApplicationException.INTERNAL_ERROR, 'An uncaught error')
     tests['testUncaughtException'] = dict(
         args=[],
         expected_result=e
     )
+    tests = {}
     e = TApplicationException(400, 'Unchecked TApplicationException')
     tests['testUncheckedTApplicationException'] = dict(
         args=[],

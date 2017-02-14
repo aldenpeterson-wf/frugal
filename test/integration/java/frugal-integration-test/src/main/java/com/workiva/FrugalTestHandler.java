@@ -162,9 +162,11 @@ public class FrugalTestHandler implements FFrugalTest.Iface {
             }
         }
 
+        // This doesn't really make the same sense to check in Java
+        // as in other languages, because we rethrow any caught runtime exceptions.
         @Override
         public void testUncaughtException(FContext ctx) throws TException {
-            throw new TException("An uncaught error (which will be caught in Java");
+            throw new TException("An uncaught error which will be caught in Java");
         }
 
         @Override

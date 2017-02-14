@@ -2787,7 +2787,8 @@ func (g *Generator) generateClientMethod(service *parser.Service, method *parser
 		method.Name)
 	contents += tabtabtab + "}\n"
 	contents += tabtabtab + "if (message.type == TMessageType.EXCEPTION) {\n"
-	contents += tabtabtabtab + "TApplicationException e = TApplicationException.read(iprot);\n"
+	contents += tabtabtabtab + "TApplicationException e = new TApplicationException();\n"
+	contents += tabtabtabtab + "e.read(iprot);\n"
 	contents += tabtabtabtab + "iprot.readMessageEnd();\n"
 	contents += tabtabtabtab + "TException returnedException = e;\n"
 	contents += tabtabtabtab + "if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {\n"
@@ -2929,6 +2930,8 @@ func (g *Generator) generateServer(service *parser.Service) string {
 		contents += tabtabtabtabtab + "oprot.writeResponseHeader(ctx);\n"
 		contents += tabtabtabtabtab + fmt.Sprintf("oprot.writeMessageBegin(new TMessage(\"%s\", TMessageType.EXCEPTION, 0));\n", methodLower)
 		contents += tabtabtabtabtab + "e.write(oprot);\n"
+		contents += tabtabtabtabtab + "oprot.writeMessageEnd();\n"
+		contents += tabtabtabtabtab + "oprot.getTransport().flush();\n"
 		contents += tabtabtabtabtab + "return;\n"
 		contents += tabtabtabtab + "} catch (TException e) {\n"
 		contents += tabtabtabtabtab + "synchronized (WRITE_LOCK) {\n"

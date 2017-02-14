@@ -7,7 +7,7 @@ from thrift.protocol.TJSONProtocol import TJSONProtocolFactory
 from thrift.protocol.TCompactProtocol import TCompactProtocolFactory
 from thrift.Thrift import TApplicationException
 from frugal.protocol import FProtocolFactory
-
+import json
 PREAMBLE_HEADER = "preamble"
 RAMBLE_HEADER = "ramble"
 
@@ -59,6 +59,9 @@ def check_for_failure(actual, expected):
     elif expected != actual:
         failed = True
     if failed:
+        print(type(actual))
+        print(json.dumps(actual.__dict__))
+	
         print("Unexpected result, expected:\n{e}\n but received:\n{a} ".format(e=expected, a=actual))
 
     return failed
