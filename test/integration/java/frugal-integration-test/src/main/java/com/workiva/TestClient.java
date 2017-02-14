@@ -449,7 +449,14 @@ public class TestClient {
                 System.out.print("  void\n*** FAILURE ***\n");
                 returnCode |= 1;
             } catch (TApplicationException e) {
-                System.out.printf("  {\"%s\"}\n", e);
+                int expectedErrorType = 6;
+                if (e.getType() != expectedErrorType){
+                    System.out.printf("  Expected type %d, got type %d\n", expectedErrorType, e.getType());
+                    System.out.printf("  void\n*** FAILURE ***\n");
+                    returnCode |= 1;
+                } else {
+                    System.out.printf("  {\"%s\"}\n", e);
+                }
             }
 
 
@@ -461,7 +468,23 @@ public class TestClient {
                 System.out.print("  void\n*** FAILURE ***\n");
                 returnCode |= 1;
             } catch (TApplicationException e) {
-                System.out.printf("  {\"%s\"}\n", e);
+                boolean failed = false;
+                String expectedMessage = "Unchecked TApplicationException";
+                int expectedErrorType = 400;
+                if (e.getType() != expectedErrorType){
+                    System.out.printf("  Expected type %d, got type %d\n", expectedErrorType, e.getType());
+                    failed = true;
+                }
+                if (!e.getMessage().contains(expectedMessage)){
+                    System.out.printf("  Expected message %s, got message %s\n", expectedMessage, e.getMessage());
+                    failed = true;
+                }
+                if (failed){
+                    System.out.print("  void\n*** FAILURE ***\n");
+                    returnCode |= 1;
+                } else {
+                    System.out.printf("  {\"%s\"}\n", e);
+                }
             }
 
             /**
