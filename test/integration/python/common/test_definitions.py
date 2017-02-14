@@ -4,7 +4,6 @@ from frugal_test.f_FrugalTest import Xtruct, Xtruct2, Numberz
 from thrift.Thrift import TApplicationException
 
 
-
 def rpc_test_definitions():
     """
     Defines and returns shared tests for all python frugal implementations.
