@@ -44,7 +44,7 @@ func compareFiles(t *testing.T, expectedPath, generatedPath string) {
 		expectedLine := expectedScanner.Text()
 		generatedLine := generatedScanner.Text()
 		if expectedLine != generatedLine {
-			t.Fatalf("Expected line <%s> (%s), generated line <%s> (%s) at line %d",
+			t.Fatalf("Expected line <%s> (%s)\n, generated line <%s> (%s)\n at line %d",
 				expectedLine, expectedPath, generatedLine, generatedPath, line)
 		}
 		line++

@@ -185,7 +185,8 @@ public class FFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "Ping failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {
@@ -223,7 +224,8 @@ public class FFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "blah failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {
@@ -282,7 +284,8 @@ public class FFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "bin_method failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {
@@ -324,7 +327,8 @@ public class FFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "param_modifiers failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {
@@ -362,7 +366,8 @@ public class FFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "underlying_types_test failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {
@@ -398,7 +403,8 @@ public class FFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "getThing failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {
@@ -434,7 +440,8 @@ public class FFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "getMyInt failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {
@@ -471,7 +478,8 @@ public class FFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "use_subdir_struct failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {

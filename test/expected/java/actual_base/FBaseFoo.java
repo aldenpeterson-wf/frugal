@@ -110,7 +110,8 @@ public class FBaseFoo {
 				throw new TApplicationException(TApplicationExceptionType.WRONG_METHOD_NAME, "basePing failed: wrong method name");
 			}
 			if (message.type == TMessageType.EXCEPTION) {
-				TApplicationException e = TApplicationException.read(iprot);
+				TApplicationException e = new TApplicationException();
+				e.read(iprot);
 				iprot.readMessageEnd();
 				TException returnedException = e;
 				if (e.getType() == TApplicationExceptionType.RESPONSE_TOO_LARGE) {
