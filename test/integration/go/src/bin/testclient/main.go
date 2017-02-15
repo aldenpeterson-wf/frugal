@@ -310,6 +310,16 @@ func callEverything(client *frugaltest.FFrugalTestClient) {
 		log.Fatalf("Unexpected TestMultiException() %#v ", err)
 	}
 
+	// Want to bypass middleware, or suppress output or something...
+	request := make([]byte, 1024*1024)
+	err = client.TestRequestTooLarge(ctx, request)
+	if err == nil {
+		log.Fatal("TestRequestTooLarge() succeeded unexpectedly")
+	} else if err.Error() != "*frugaltest.FrugalTestTestRequestTooLargeArgs.request (1) field write error: Buffer size reached (1048576)" {
+		log.Fatalf("Unexpected TestRequestTooLarge() %v", err)
+	}
+
+
 	err = client.TestOneway(ctx, 1)
 	if err != nil {
 		log.Fatal("Unexpected error in TestOneway() call: ", err)

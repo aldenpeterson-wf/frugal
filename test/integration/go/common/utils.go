@@ -33,6 +33,7 @@ func clientLoggingMiddleware(called chan<- bool) frugal.ServiceMiddleware {
 			case called <- true:
 			default:
 			}
+			if args[1:]
 			fmt.Printf("%v(%v) = ", method.Name, args[1:])
 			ret := next(service, method, args)
 			fmt.Printf("%v\n", ret[:1])

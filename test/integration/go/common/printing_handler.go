@@ -180,6 +180,31 @@ func (p *printingHandler) TestUncheckedTApplicationException(ctx frugal.FContext
 
 }
 
+// TestRequestTooLarge
+// Only used for testing with NATS
+// This case should never be hit because the client should encounter an error
+func(p *printingHandler) TestRequestTooLarge(ctx frugal.FContext, request []byte) (err error) {
+	return
+}
+
+// TestRequestAlmostTooLarge
+// Only used for testing with NATS
+// This case should never be hit because the client should encounter a
+// message size error
+func(p *printingHandler) TestRequestAlmostTooLarge(ctx frugal.FContext, request []byte) (response []byte, err error) {
+	return
+}
+
+// TestResponseTooLarge
+// Only used for testing with NATS
+// Takes a []btye that is just under the 1mb limit and returns with a message
+// that is over the 1mb limit
+func(p *printingHandler) TestResponseTooLarge (ctx frugal.FContext, request []byte) (response []byte, err error) {
+	extra := make([]byte, 1024*24)
+	response = append(request, extra...)
+	return
+}
+
 // TestMultiException
 // @param string arg - a string indication what type of exception to throw
 // if arg0 == "Xception" throw Xception with errorCode = 1001 and message = "This is an Xception"
