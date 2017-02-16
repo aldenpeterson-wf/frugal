@@ -134,6 +134,21 @@ class FrugalTestHandler(Iface):
             r.string_thing = arg1
             return r
 
+    def testRequestTooLarge(self, ctx, request):
+        print("test_request_too_large({})".format(request))
+        return
+
+    def testRequestAlmostTooLarge(self, ctx, request):
+        print("test_request_almost_too_large({})".format(request))
+        return
+
+    def testResponseTooLarge(self, ctx, request):
+        print("test_response_too_large({})".format(request))
+        # extra =
+        print(type(request))
+        # Add 24kb to request
+        return
+
     def testOneway(self, ctx, seconds):
         print("test_oneway({}): Sleeping...".format(seconds))
         time.sleep(seconds/1000)

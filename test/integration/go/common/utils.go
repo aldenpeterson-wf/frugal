@@ -29,14 +29,36 @@ func getNatsConn() *nats.Conn {
 func clientLoggingMiddleware(called chan<- bool) frugal.ServiceMiddleware {
 	return func(next frugal.InvocationHandler) frugal.InvocationHandler {
 		return func(service reflect.Value, method reflect.Method, args frugal.Arguments) frugal.Results {
+			var (
+				isByteArray bool
+				length int
+				ret frugal.Results
+			)
+
 			select {
 			case called <- true:
 			default:
 			}
-			if args[1:]
-			fmt.Printf("%v(%v) = ", method.Name, args[1:])
-			ret := next(service, method, args)
-			fmt.Printf("%v\n", ret[:1])
+			// If first argument after the fContext is a byte array
+			// with a length > 10, print the length (size) instead
+			// of the contents
+			if len(args) > 1 {
+				a := args[1].(interface{})
+				byteArray, ok := a.([]byte)
+				if ok {
+					isByteArray = true
+					length = len(byteArray)
+				}
+			}
+			if isByteArray && length > 10 {
+				fmt.Printf("%v(%v) = ", method.Name, length)
+				ret = next(service, method, args)
+				fmt.Printf("%v\n", ret[:1])
+			} else {
+				fmt.Printf("%v(%v) = ", method.Name, args[1:])
+				ret = next(service, method, args)
+				fmt.Printf("%v\n", ret[:1])
+			}
 			return ret
 		}
 	}
@@ -45,12 +67,36 @@ func clientLoggingMiddleware(called chan<- bool) frugal.ServiceMiddleware {
 func serverLoggingMiddleware(called chan<- bool) frugal.ServiceMiddleware {
 	return func(next frugal.InvocationHandler) frugal.InvocationHandler {
 		return func(service reflect.Value, method reflect.Method, args frugal.Arguments) frugal.Results {
+			var (
+				isByteArray bool
+				length int
+				ret frugal.Results
+			)
+
 			select {
 			case called <- true:
 			default:
 			}
-			fmt.Printf("%v(%v) \n", method.Name, args[1:])
-			ret := next(service, method, args)
+			// If first argument after the fContext is a byte array
+			// with a length > 10, print the length (size) instead
+			// of the contents
+			if len(args) > 1 {
+				a := args[1].(interface{})
+				byteArray, ok := a.([]byte)
+				if ok {
+					isByteArray = true
+					length = len(byteArray)
+				}
+			}
+			if isByteArray && length > 10 {
+				fmt.Printf("%v(%v) = ", method.Name, length)
+				ret = next(service, method, args)
+				fmt.Printf("%v\n", len(ret[:1]))
+			} else {
+				fmt.Printf("%v(%v) = ", method.Name, args[1:])
+				ret = next(service, method, args)
+				fmt.Printf("%v\n", ret[:1])
+			}
 			return ret
 		}
 	}

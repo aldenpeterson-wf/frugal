@@ -2,6 +2,7 @@ from frugal_test.ttypes import Xception, Insanity, Xception2, Event
 from frugal_test.f_FrugalTest import Xtruct, Xtruct2, Numberz
 
 from thrift.Thrift import TApplicationException
+from thrift.transport.TTransport import TTransportException
 
 
 def rpc_test_definitions():
@@ -121,6 +122,12 @@ def rpc_test_definitions():
     e = TApplicationException(400, 'Unchecked TApplicationException')
     tests['testUncheckedTApplicationException'] = dict(
         args=[],
+        expected_result=e
+    )
+
+    e = TTransportException(100)
+    tests['testRequestTooLarge'] = dict(
+        args=[]
         expected_result=e
     )
 

@@ -18,7 +18,7 @@ import (
 
 var host = flag.String("host", "localhost", "Host to connect")
 var port = flag.Int64("port", 9090, "Port number to connect")
-var transport = flag.String("transport", "stateless", "Transport: stateless, stateful, stateless-stateful, http")
+var transport = flag.String("transport", "stateless", "Transport: stateless, http")
 var protocol = flag.String("protocol", "binary", "Protocol: binary, compact, json")
 
 func main() {
@@ -310,18 +310,38 @@ func callEverything(client *frugaltest.FFrugalTestClient) {
 		log.Fatalf("Unexpected TestMultiException() %#v ", err)
 	}
 
-	// Want to bypass middleware, or suppress output or something...
-	request := make([]byte, 1024*1024)
-	err = client.TestRequestTooLarge(ctx, request)
-	if err == nil {
-		log.Fatal("TestRequestTooLarge() succeeded unexpectedly")
-	} else if err.Error() != "*frugaltest.FrugalTestTestRequestTooLargeArgs.request (1) field write error: Buffer size reached (1048576)" {
-		log.Fatalf("Unexpected TestRequestTooLarge() %v", err)
-	}
+	// Only run checks on message size if testing over NATS
+	if *transport != "http" {
+		// Request at the 1mb limit
+		request := make([]byte, 1024 * 1024)
+		err = client.TestRequestTooLarge(ctx, request)
+		if err == nil {
+			log.Fatal("TestRequestTooLarge() succeeded unexpectedly")
+		} else if err.Error() != "*frugaltest.FrugalTestTestRequestTooLargeArgs.request (1) field write error: Buffer size reached (1048576)" {
+			log.Fatalf("Unexpected TestRequestTooLarge() %v", err)
+		}
 
+		// Request 4 bytes less than the 1mb limit
+		request = make([]byte, 1024 * 1024 - 4)
+		err = client.TestRequestAlmostTooLarge(ctx, request)
+		if err == nil {
+			log.Fatal("TestAlmostRequestTooLarge() succeeded unexpectedly")
+		} else if err.Error() != "*frugaltest.FrugalTestTestRequestAlmostTooLargeArgs.request (1) field write error: Buffer size reached (1048576)" {
+			log.Fatalf("Unexpected TestRequestTooLarge() %v", err)
+		}
 
-	err = client.TestOneway(ctx, 1)
-	if err != nil {
-		log.Fatal("Unexpected error in TestOneway() call: ", err)
+		// Request below the 1mb limit
+		request = make([]byte, 1024 * 1000)
+		response, err := client.TestResponseTooLarge(ctx, request)
+		if err.Error() != "*frugaltest.FrugalTestTestResponseTooLargeResult.success (0) field write error: Buffer size reached (1048576)" {
+			log.Fatalf("Unexpected error: %v", err.Error())
+		} else if response != nil {
+			log.Fatalf("\n Unexpected response: %v \n", response)
+		}
+
+		err = client.TestOneway(ctx, 1)
+		if err != nil {
+			log.Fatal("Unexpected error in TestOneway() call: ", err)
+		}
 	}
 }

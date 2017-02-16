@@ -306,7 +306,7 @@ service FrugalTest
    * @param binary request - a 1023kb byte array
    * There should be no return value, as the request should hit an exception
    */
-  binary testRequestAlmostTooLarge(1: binary request)
+  void testRequestAlmostTooLarge(1: binary request)
 
   /**
    * Print 'testResponseTooLarge(%s)' with request as '%s'
