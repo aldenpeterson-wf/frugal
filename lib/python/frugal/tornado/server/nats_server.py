@@ -3,6 +3,7 @@ import struct
 
 from thrift.Thrift import TApplicationException
 from thrift.transport.TTransport import TMemoryBuffer
+from thrift.transport.TTransport import TTransportException
 from tornado import gen
 
 from frugal import _NATS_MAX_MESSAGE_SIZE
@@ -73,6 +74,7 @@ class FNatsServer(FServer):
         frame_size = struct.unpack('!I', msg.data[:4])[0]
         if frame_size > _NATS_MAX_MESSAGE_SIZE - 4:
             logger.warning("Invalid frame size, dropping message.")
+            raise TTransportException.REQUEST_TOO_LARGE
             return
 
         # Read and process frame (exclude first 4 bytes which

@@ -102,6 +102,7 @@ func main() {
 					failLog.mu.Unlock()
 				} else if task.pair.ReturnCode == crossrunner.CrossrunnerFailure {
 					// If there was a crossrunner failure, fail immediately
+					// TODO: add additional context here to make it easier to debug
 					panic(task.pair.Err)
 				}
 				// Print configuration results to console

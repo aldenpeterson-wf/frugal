@@ -137,7 +137,6 @@ class FrugalTestHandler(Iface):
 
     def testRequestTooLarge(self, ctx, request):
         print("test_request_too_large({})".format(request))
-        print(sys.getsizeof(request))
         return
 
     def testRequestAlmostTooLarge(self, ctx, request):
@@ -146,7 +145,8 @@ class FrugalTestHandler(Iface):
 
     def testResponseTooLarge(self, ctx, request):
         print("test_response_too_large({})".format(request))
-        response = six.binary_type(1024*1024)
+        response = six.binary_type(b'\x00' * 1024 * 1024)
+        print(sys.getsizeof(response))
         return response
 
     def testOneway(self, ctx, seconds):
