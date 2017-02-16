@@ -1,8 +1,9 @@
+import six, sys
 import time
 
 from thrift.Thrift import TApplicationException
 
-from frugal_test.f_FrugalTest import Iface, Xtruct, Xception, Xception2, Insanity
+from frugal_test.f_FrugalTest import Iface, Xtruct, Xception, Xception2
 
 
 class FrugalTestHandler(Iface):
@@ -136,6 +137,7 @@ class FrugalTestHandler(Iface):
 
     def testRequestTooLarge(self, ctx, request):
         print("test_request_too_large({})".format(request))
+        print(sys.getsizeof(request))
         return
 
     def testRequestAlmostTooLarge(self, ctx, request):
@@ -144,10 +146,8 @@ class FrugalTestHandler(Iface):
 
     def testResponseTooLarge(self, ctx, request):
         print("test_response_too_large({})".format(request))
-        # extra =
-        print(type(request))
-        # Add 24kb to request
-        return
+        response = six.binary_type(1024*1024)
+        return response
 
     def testOneway(self, ctx, seconds):
         print("test_oneway({}): Sleeping...".format(seconds))

@@ -331,7 +331,7 @@ func callEverything(client *frugaltest.FFrugalTestClient) {
 		}
 
 		// Request below the 1mb limit
-		request = make([]byte, 1024 * 1000)
+		request = make([]byte, 4)
 		response, err := client.TestResponseTooLarge(ctx, request)
 		if err.Error() != "*frugaltest.FrugalTestTestResponseTooLargeResult.success (0) field write error: Buffer size reached (1048576)" {
 			log.Fatalf("Unexpected error: %v", err.Error())

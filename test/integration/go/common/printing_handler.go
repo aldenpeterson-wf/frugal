@@ -200,8 +200,7 @@ func(p *printingHandler) TestRequestAlmostTooLarge(ctx frugal.FContext, request 
 // Takes a []btye that is just under the 1mb limit and returns with a message
 // that is over the 1mb limit
 func(p *printingHandler) TestResponseTooLarge (ctx frugal.FContext, request []byte) (response []byte, err error) {
-	extra := make([]byte, 1024*24)
-	response = append(request, extra...)
+	response = make([]byte, 1024*1024)
 	return response, nil
 }
 
