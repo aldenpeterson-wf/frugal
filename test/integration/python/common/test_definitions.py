@@ -129,13 +129,13 @@ def rpc_test_definitions(transport):
 
     # Only check on NATS transports
     if transport != "http":
-        e = "Buffer size reached 1048576"
+        e = TTransportException("Buffer size reached 1048576")
         tests['testRequestTooLarge'] = dict(
             args=[six.binary_type(b'\x00' * 1024 * 1024)],
             expected_result=e
         )
 
-        e = "Buffer size reached 1048576"
+        e = TTransportException("Buffer size reached 1048576")
         tests['testRequestAlmostTooLarge'] = dict(
             args=[six.binary_type(b'\x00' * (1024 * 1024 - 1))],
             expected_result=e

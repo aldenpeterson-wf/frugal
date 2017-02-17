@@ -151,6 +151,8 @@ def test_rpc(client, ctx, transport):
         except Exception as e:
             result = e
 
+        # print(type(result))
+
         test_failed = check_for_failure(result, expected_result) or test_failed
 
     # oneWay RPC call (no response)
