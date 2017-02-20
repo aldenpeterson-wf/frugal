@@ -11,4 +11,4 @@ else
 fi
 
 pip install -e ".[tornado]"
-python3.5 /usr/bin/pip3 install -e ".[asyncio]"
+#python3.5 /usr/bin/pip3 install -e ".[asyncio]"

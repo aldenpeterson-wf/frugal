@@ -17,6 +17,7 @@ from frugal_test.f_FrugalTest import Client as FrugalTestClient
 middleware_called = False
 
 
+
 def main():
     parser = argparse.ArgumentParser(description="Run a vanilla python client")
     parser.add_argument('--port', dest='port', default='9090')
@@ -60,13 +61,10 @@ def test_rpc(client, ctx):
         expected_result = vals['expected_result']
         result = None
 
-        try:
-            if args:
-                result = method(ctx, *args)
-            else:
-                result = method(ctx)
-        except Exception as e:
-            result = e
+        if args:
+            result = method(ctx, *args)
+        else:
+            result = method(ctx)
 
         test_failed = check_for_failure(result, expected_result) or test_failed
 
@@ -84,11 +82,21 @@ def client_middleware(next):
     def handler(method, args):
         global middleware_called
         middleware_called = True
-        print(u"{}({}) = ".format(method.im_func.func_name, args[1:]), end="")
+
+        print(u"{}({}) = ".format(method.im_func.func_name, string_of_all_the_things(args[1:])), end="")
         ret = next(method, args)
-        print(u"{}".format(ret))
+        print(u"{}".format(string_of_all_the_things(ret)))
+
+
         return ret
     return handler
+
+def string_of_all_the_things(thing):
+    if isinstance(thing, unicode):
+        print(type(thing))
+        return thing.encode('ascii', 'replace')
+    else:
+        return thing
 
 
 if __name__ == '__main__':

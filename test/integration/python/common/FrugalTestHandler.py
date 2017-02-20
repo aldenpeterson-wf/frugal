@@ -11,7 +11,8 @@ class FrugalTestHandler(Iface):
         return
 
     def testString(self, ctx, thing):
-        print(u"I am testString. test_string({})".format(thing))
+        print('Thing:', thing)
+        # print("I am testString. test_string({})".format(thing))
         return thing
 
     def testBool(self, ctx, thing):

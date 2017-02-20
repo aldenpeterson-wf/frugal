@@ -150,6 +150,7 @@ def test_rpc(client, ctx):
                 result = yield method(ctx)
         except Exception as e:
             result = e
+            raise e
 
         test_failed = check_for_failure(result, expected_result) or test_failed
 

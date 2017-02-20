@@ -97,31 +97,31 @@ def rpc_test_definitions():
     multi.i64_thing = i64
     tests['testMulti'] = dict(args=[byte, i32, i64, {1: "blah", 2: thing}, Numberz.EIGHT, 24], expected_result=multi)
 
-    tests['testException'] = dict(
-        args=['Xception'],
-        expected_result=Xception(errorCode=1001, message='Xception')
-    )
+    # tests['testException'] = dict(
+    #     args=['Xception'],
+    #     expected_result=Xception(errorCode=1001, message='Xception')
+    # )
 
     struct_thing = Xtruct()
     struct_thing.string_thing = 'This is an Xception2'
     struct_thing.byte_thing = 0
     struct_thing.i32_thing = 0
     struct_thing.i64_thing = 0
-    e = Xception2(errorCode=2002, struct_thing=struct_thing)
-    tests['testMultiException'] = dict(
-        args=['Xception2', 'ignoreme'],
-        expected_result=e
-    )
-    e = TApplicationException(TApplicationException.INTERNAL_ERROR, 'An uncaught error')
-    tests['testUncaughtException'] = dict(
-        args=[],
-        expected_result=e
-    )
-
-    e = TApplicationException(400, 'Unchecked TApplicationException')
-    tests['testUncheckedTApplicationException'] = dict(
-        args=[],
-        expected_result=e
-    )
+    # e = Xception2(errorCode=2002, struct_thing=struct_thing)
+    # tests['testMultiException'] = dict(
+    #     args=['Xception2', 'ignoreme'],
+    #     expected_result=e
+    # )
+    # e = TApplicationException(TApplicationException.INTERNAL_ERROR, 'An uncaught error')
+    # tests['testUncaughtException'] = dict(
+    #     args=[],
+    #     expected_result=e
+    # )
+    #
+    # e = TApplicationException(400, 'Unchecked TApplicationException')
+    # tests['testUncheckedTApplicationException'] = dict(
+    #     args=[],
+    #     expected_result=e
+    # )
 
     return tests

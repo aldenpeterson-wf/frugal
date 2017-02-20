@@ -59,8 +59,11 @@ def check_for_failure(actual, expected):
         failed = True
     if failed:
         print("Unexpected result, expected:")
-        print(expected)
+        print(expected.encode('utf-8'))
+        print(map(ord, expected))
+
         print("but received")
-        print(actual)
+        print(map(ord, actual))
+        # print(actual)
 
     return failed
