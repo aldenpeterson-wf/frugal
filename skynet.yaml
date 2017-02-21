@@ -13,6 +13,7 @@ image: drydock-prod.workiva.net/workiva/messaging-docker-images:119185
 
 env:
   - IN_SKYNET_CLI=true
+  - PYTHONIOENCODING=utf-8
 
 scripts:
   - ./scripts/skynet/run_cross_skynet.sh
@@ -32,6 +33,9 @@ run:
   when-branch-name-is:
     - .+
 
+env:
+  - PYTHONIOENCODING=utf-8
+  
 requires:
   Workiva/frugal:
     - artifactory

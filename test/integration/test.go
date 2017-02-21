@@ -62,7 +62,7 @@ func main() {
 
 	// Need to create log directory for Skynet-cli. This isn't an issue on Skynet.
 	if _, err = os.Stat("log"); os.IsNotExist(err) {
-		if err = os.Mkdir("log", 755); err != nil {
+		if err = os.Mkdir("log", 0755); err != nil {
 			log.Info("Unable to create 'log' directory")
 			panic(err)
 		}

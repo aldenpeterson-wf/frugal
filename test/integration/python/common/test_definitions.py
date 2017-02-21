@@ -123,5 +123,9 @@ def rpc_test_definitions():
         args=[],
         expected_result=e
     )
+    # tests = {}
+    # tests['testStruct'] = dict(args=[struct], expected_result=struct)
+    #
+    # tests['testString'] = dict(args=[thing], expected_result=thing)
 
     return tests

@@ -13,5 +13,4 @@ fi
 pip install -e ".[tornado]"
 python3.5 /usr/bin/pip3 install -e ".[asyncio]"
 
-export PYTHONIOENCODING=utf-8
-exit status 1
+export PYTHONIOENCODING="utf-8"

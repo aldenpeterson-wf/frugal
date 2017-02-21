@@ -49,6 +49,7 @@ def check_for_failure(actual, expected):
     failed = False
     # TApplicationException doesn't implement __eq__ operator
     if isinstance(expected, TApplicationException):
+        print('checking TApplicationException')
         try:
             # Py2 and Py3 versions of thrift slightly differ in how the attribute is assigned...
             if sys.version_info[0] == 3 and actual.message.find(expected.message) == -1 or actual.type != expected.type:
@@ -56,13 +57,19 @@ def check_for_failure(actual, expected):
             if sys.version_info[0] == 2 and actual._message.find(expected._message) == -1 or actual.type != expected.type:
                 failed = True
         except Exception:
+            print('failing TApplicationException')
             failed = True
     elif expected != actual:
+        print('failing')
         failed = True
     if failed:
         if sys.version_info[0] == 3:
+            print('hello')
+            print('type expected:', type(expected))
+            print('type actual:', type(actual))
             print("Unexpected result, expected:\n{e}\n but received:\n{a} ".format(
                 e=expected, a=actual))
+            print('hello2')
         if sys.version_info[0] == 2:
             print("Unexpected result, expected:\n{e}\n but received:\n{a} ".format(
                 e=string_of_all_the_things(expected), a=string_of_all_the_things(actual)))
@@ -71,7 +78,11 @@ def check_for_failure(actual, expected):
 
 
 def string_of_all_the_things(thing):
+    print(sys.version_info, sys.version_info[0])
     if sys.version_info[0] == 2 and isinstance(thing, unicode):
         return thing.encode('ascii', 'ignore')
     else:
-        return thing
+        try:
+            return thing.decode()
+        except:
+            return thing

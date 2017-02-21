@@ -80,6 +80,7 @@ async def test_rpc(client, ctx):
             else:
                 result = await method(ctx)
         except Exception as e:
+            print(ctx, method)
             result = e
 
         test_failed = check_for_failure(result, expected_result) or test_failed
@@ -151,6 +152,10 @@ def client_middleware(next):
         global middleware_called
         middleware_called = True
         print("{}({}) = ".format(method.__name__, args[1:], end=""))
+
+        s = args[1:]
+        print(type(s[0]))
+        print("%s = " % s)
         # ret is a <class 'coroutine'>
         ret = next(method, args)
         # Use asyncIO.ensure_future to convert the coroutine to a task

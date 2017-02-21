@@ -14,7 +14,7 @@ class FrugalTestHandler(Iface):
 
     def testString(self, ctx, thing):
         # Need to have different handler for py3 vs py2
-        print("test_string({})".format(string_of_all_the_things(thing)))
+        print("test_string({})".format(thing))
         return thing
 
     def testBool(self, ctx, thing):
