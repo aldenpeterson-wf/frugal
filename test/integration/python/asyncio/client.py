@@ -153,9 +153,6 @@ def client_middleware(next):
         middleware_called = True
         print("{}({}) = ".format(method.__name__, args[1:], end=""))
 
-        s = args[1:]
-        print(type(s[0]))
-        print("%s = " % s)
         # ret is a <class 'coroutine'>
         ret = next(method, args)
         # Use asyncIO.ensure_future to convert the coroutine to a task
