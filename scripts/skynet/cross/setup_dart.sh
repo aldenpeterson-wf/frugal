@@ -6,11 +6,12 @@ export FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal
 
 # Dart Dependencies
 cd $FRUGAL_HOME/test/integration/dart/test_client
+rm -rf .packages packages
 pub upgrade
 
 # Try pub get and ignore failures - it will fail on any release
 cd $FRUGAL_HOME/test/integration/dart/gen-dart/frugal_test
-if pub upgrade ; then
+if pub get ; then
     echo 'pub upgrade returned no error'
 else
     echo 'Pub upgrade returned an error we ignored'
