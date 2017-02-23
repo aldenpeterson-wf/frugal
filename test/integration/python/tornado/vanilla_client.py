@@ -84,7 +84,7 @@ def client_middleware(next):
     def handler(method, args):
         global middleware_called
         middleware_called = True
-        print("{}({}) = ".format(method.im_func.func_name, args[1:]), end="")
+        print("{}({}) = ".format(method.__name__, args[1:]), end="")
         ret = next(method, args)
         print("{}".format(ret))
         return ret
