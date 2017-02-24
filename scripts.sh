@@ -8,7 +8,7 @@ export FRUGAL_HOME=/frugal
 #rm -rf .packages packages
 cd $FRUGAL_HOME
 pub upgrade
-pub get --offline
+#pub get --offline -v
 
 # Run cross tests - want to report any failures, so don't allow command to exit
 # without cleaning up
