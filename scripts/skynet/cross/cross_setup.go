@@ -11,7 +11,8 @@ import (
 func main(){
 
 	setupScriptDir := "scripts/skynet/cross/"
-	setupScripts := []string{"setup_dart.sh", "setup_go.sh", "setup_python.sh", "setup_java.sh"}
+	//setupScripts := []string{"setup_dart.sh", "setup_go.sh", "setup_python.sh", "setup_java.sh"}
+	setupScripts := []string{"setup_dart.sh"}
 
 	// Allow each setup script to run concurrently
 	var wg sync.WaitGroup
