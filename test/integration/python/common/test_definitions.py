@@ -1,5 +1,7 @@
 import six
 
+from frugal.exceptions import TTransportExceptionType
+
 from frugal_test.ttypes import Xception, Insanity, Xception2
 from frugal_test.f_FrugalTest import Xtruct, Xtruct2, Numberz
 
@@ -127,21 +129,21 @@ def rpc_test_definitions(transport):
         expected_result=e
     )
 
-    # Only check on NATS transports
+    # Only check message size exceptions with NATS transports
     if transport != "http":
-        e = TTransportException("Buffer size reached 1048576")
+        e = TTransportException(TTransportExceptionType.REQUEST_TOO_LARGE)
         tests['testRequestTooLarge'] = dict(
             args=[six.binary_type(b'\x00' * 1024 * 1024)],
             expected_result=e
         )
 
-        e = TTransportException("Buffer size reached 1048576")
+        e = TTransportException(TTransportExceptionType.REQUEST_TOO_LARGE)
         tests['testRequestAlmostTooLarge'] = dict(
             args=[six.binary_type(b'\x00' * (1024 * 1024 - 1))],
             expected_result=e
         )
 
-        e = "request timed out "
+        e = TTransportException(TTransportExceptionType.RESPONSE_TOO_LARGE)
         tests['testResponseTooLarge'] = dict(
             args=[six.binary_type(b'\x00' * 4)],
             expected_result=e

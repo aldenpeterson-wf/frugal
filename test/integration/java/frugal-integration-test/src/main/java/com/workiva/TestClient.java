@@ -20,6 +20,7 @@
 package com.workiva;
 
 import com.workiva.frugal.FContext;
+import com.workiva.frugal.exception.TTransportExceptionType;
 import com.workiva.frugal.middleware.InvocationHandler;
 import com.workiva.frugal.middleware.ServiceMiddleware;
 import com.workiva.frugal.protocol.FProtocolFactory;
@@ -40,6 +41,7 @@ import io.nats.client.ConnectionFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.protocol.TProtocolFactory;
 
 import java.lang.reflect.Method;
@@ -142,6 +144,7 @@ public class TestClient {
              */
 
             try {
+                context = new FContext("testVoid");
                 testClient.testVoid(context);
             } catch (TApplicationException tax) {
                 tax.printStackTrace();
@@ -152,6 +155,7 @@ public class TestClient {
             /**
              * STRING TEST
              */
+            context = new FContext("testString");
             String s = testClient.testString(context, "Test");
             if (!s.equals("Test")) {
                 returnCode |= 1;
@@ -161,6 +165,7 @@ public class TestClient {
             /**
              * BOOL TESTS
              */
+            context = new FContext("testBool");
             boolean bl = testClient.testBool(context, true);
             if (!bl) {
                 returnCode |= 1;
@@ -176,6 +181,7 @@ public class TestClient {
             /**
              * BYTE TEST
              */
+            context = new FContext("testByte");
             byte i8 = testClient.testByte(context, (byte) 1);
             if (i8 != 1) {
                 returnCode |= 1;
@@ -185,6 +191,7 @@ public class TestClient {
             /**
              * I32 TEST
              */
+            context = new FContext("testI32");
             int i32 = testClient.testI32(context, -1);
             if (i32 != -1) {
                 returnCode |= 1;
@@ -194,6 +201,7 @@ public class TestClient {
             /**
              * I64 TEST
              */
+            context = new FContext("testI64");
             long i64 = testClient.testI64(context, -34359738368L);
             if (i64 != -34359738368L) {
                 returnCode |= 1;
@@ -203,6 +211,7 @@ public class TestClient {
             /**
              * DOUBLE TEST
              */
+            context = new FContext("testDouble");
             double dub = testClient.testDouble(context, -5.325098235);
             if (Math.abs(dub - (-5.325098235)) > 0.001) {
                 returnCode |= 1;
@@ -212,6 +221,7 @@ public class TestClient {
             /**
              * BINARY TEST
              */
+            context = new FContext("testBinary");
             try {
                 // verify the byte[] is able to be encoded as UTF-8 to avoid deserialization errors in clients
                 byte[] data = "foo".getBytes("UTF-8");
@@ -236,6 +246,7 @@ public class TestClient {
             /**
              * STRUCT TEST
              */
+            context = new FContext("testStruct");
             Xtruct out = new Xtruct();
             out.string_thing = "Zero";
             out.byte_thing = (byte) 1;
@@ -251,6 +262,7 @@ public class TestClient {
             /**
              * NESTED STRUCT TEST
              */
+            context = new FContext("testXtruct2");
             Xtruct2 out2 = new Xtruct2();
             out2.byte_thing = (short) 1;
             out2.struct_thing = out;
@@ -266,6 +278,7 @@ public class TestClient {
             /**
              * MAP TEST
              */
+            context = new FContext("testMap");
             Map<Integer, Integer> mapout = new HashMap<>();
             for (int i = 0; i < 5; ++i) {
                 mapout.put(i, i - 10);
@@ -280,6 +293,7 @@ public class TestClient {
             /**
              * STRING MAP TEST
              */
+            context = new FContext("testStringMap");
             try {
                 Map<String, String> smapout = new HashMap<>();
                 smapout.put("a", "2");
@@ -299,6 +313,7 @@ public class TestClient {
             /**
              * SET TEST
              */
+            context = new FContext("testSet");
             Set<Integer> setout = new HashSet<>();
             for (int i = -2; i < 3; ++i) {
                 setout.add(i);
@@ -312,6 +327,7 @@ public class TestClient {
             /**
              * LIST TEST
              */
+            context = new FContext("testList");
             List<Integer> listout = new ArrayList<>();
             for (int i = -2; i < 3; ++i) {
                 listout.add(i);
@@ -325,6 +341,7 @@ public class TestClient {
             /**
              * ENUM TEST
              */
+            context = new FContext("testEnum");
             Numberz ret = testClient.testEnum(context, Numberz.ONE);
             if (ret != Numberz.ONE) {
                 returnCode |= 1;
@@ -358,6 +375,7 @@ public class TestClient {
             /**
              * TYPEDEF TEST
              */
+            context = new FContext("testTypedef");
             long uid = testClient.testTypedef(context, 309858235082523L);
             if (uid != 309858235082523L) {
                 returnCode |= 1;
@@ -367,6 +385,7 @@ public class TestClient {
             /**
              * NESTED MAP TEST
              */
+            context = new FContext("testMapMap");
             Map<Integer, Map<Integer, Integer>> mm =
                     testClient.testMapMap(context, 1);
             if (mm.size() != 2 || !mm.containsKey(4) || !mm.containsKey(-4)) {
@@ -385,6 +404,7 @@ public class TestClient {
             /**
              * BOOL TESTS
              */
+            context = new FContext("TestUppercaseMethod");
             boolean uppercase = testClient.TestUppercaseMethod(context, true);
             if (!uppercase) {
                 returnCode |= 1;
@@ -394,7 +414,7 @@ public class TestClient {
             /**
              * INSANITY TEST
              */
-
+            context = new FContext("testInsanity");
             boolean insanityFailed = true;
             try {
                 Xtruct hello = new Xtruct();
@@ -444,6 +464,7 @@ public class TestClient {
             /**
              * UNCHECKED EXCEPTION TEST
              */
+            context = new FContext("testUncaughtException");
             try {
                 testClient.testUncaughtException(context);
                 System.out.print("  void\n*** FAILURE ***\n");
@@ -480,6 +501,7 @@ public class TestClient {
             /**
              * UNCHECKED TAPPLICATION EXCEPTION TEST
              */
+            context = new FContext("testUncheckedTApplicationException");
             try {
                 testClient.testUncheckedTApplicationException(context);
                 System.out.print("  void\n*** FAILURE ***\n");
@@ -507,6 +529,7 @@ public class TestClient {
             /**
              * EXECPTION TEST
              */
+            context = new FContext("testException");
             try {
                 testClient.testException(context, "Xception");
                 System.out.print("  void\n*** FAILURE ***\n");
@@ -526,7 +549,7 @@ public class TestClient {
             /**
              * MULTI EXCEPTION TEST
              */
-
+            context = new FContext("testMultiException");
             try {
                 testClient.testMultiException(context, "Xception", "test 1");
                 System.out.print("  result\n*** FAILURE ***\n");
@@ -550,9 +573,67 @@ public class TestClient {
                 returnCode |= 1;
             }
 
+
+            // Only check message size exceptions with NATS transports
+            if (transport_type != "http") {
+
+                /**
+                 * REQUEST TOO LARGE TEST
+                 */
+                context = new FContext("testRequestTooLarge");
+                try {
+                    java.nio.ByteBuffer request = ByteBuffer
+                            .allocate(1024*1024);
+                    testClient.testRequestTooLarge(context, request);
+                    System.out.print("  result\n*** FAILURE ***\n");
+                    returnCode |= 1;
+                } catch (TTransportException e) {
+                    if (e.getType() != TTransportExceptionType.REQUEST_TOO_LARGE) {
+                        System.out.printf("  Unexpected exception %s\n", e);
+                        returnCode |= 1;
+                    }
+                }
+
+
+                /**
+                 * REQUEST ALMOST TOO LARGE TEST
+                 */
+                context = new FContext("testRequestAlmostTooLarge");
+                try {
+                    java.nio.ByteBuffer request = ByteBuffer
+                            .allocate(1024*1024-1);
+                    testClient.testRequestAlmostTooLarge(context, request);
+                    System.out.print("  result\n*** FAILURE ***\n");
+                    returnCode |= 1;
+                } catch (TTransportException e) {
+                    if (e.getType() != TTransportExceptionType.REQUEST_TOO_LARGE) {
+                        System.out.printf("  Unexpected exception %s\n", e);
+                        returnCode |= 1;
+                    }
+                }
+
+                /**
+                 * RESPONSE TOO LARGE TEST
+                 */
+                context = new FContext("testReponseTooLarge");
+                try {
+                    java.nio.ByteBuffer request = ByteBuffer.allocate(1);
+                    java.nio.ByteBuffer response = testClient.testResponseTooLarge(context, request);
+                    System.out.print("  result\n*** FAILURE ***\n");
+                    returnCode |= 1;
+                } catch (TTransportException e) {
+                    if (e.getType() != TTransportExceptionType.RESPONSE_TOO_LARGE) {
+                        System.out.printf("  Unexpected exception %s\n", e);
+                        returnCode |= 1;
+                    }
+                }
+
+            }
+
             /**
              * ONEWAY TEST
              */
+            context = new FContext("testOneway");
             try {
                 testClient.testOneway(context, 1);
             } catch (Exception e) {
@@ -624,7 +705,15 @@ public class TestClient {
                 @Override
                 public Object invoke(Method method, Object receiver, Object[] args) throws Throwable {
                     Object[] subArgs = Arrays.copyOfRange(args, 1, args.length);
-                    System.out.printf("%s(%s) = ", method.getName(), Arrays.toString(subArgs));
+                    System.out.printf("%s", method.getName());
+                    if(subArgs[1] != null && subArgs[1] instanceof java.nio
+                            .ByteBuffer && ((java.nio.ByteBuffer) subArgs[1])
+                            .remaining() > 1000 ) {
+                        System.out.printf("%s(%s) = ", method.getName(),
+                                ((java.nio.ByteBuffer)subArgs[1]).remaining());
+                    } else {
+                        System.out.printf("%s(%s) = ", method.getName(), Arrays.toString(subArgs));
+                    }
                     middlewareCalled = true;
                     try {
                         Object ret = method.invoke(receiver, args);

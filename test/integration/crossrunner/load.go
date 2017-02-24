@@ -19,8 +19,8 @@ type options struct {
 // language level options defined in tests.json.
 type languages struct { // Example
 	Name       string   // Language name
-	Client     options  // client specific commands, protocols, transports, and timeouts
-	Server     options  // server specific commands, protocols, transports, and timeouts
+	Client     options  // client specific commands, protocols, transports, and timesouts
+	Server     options  // server specific commands, protocols, transports, and timesouts
 	Transports []string // transports that apply to both clients and servers within a language
 	Protocols  []string // protocols that apply to both clients and servers within a language
 	Command    []string // command that applies to both clients and servers within a language

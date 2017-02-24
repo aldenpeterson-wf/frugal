@@ -310,7 +310,7 @@ func callEverything(client *frugaltest.FFrugalTestClient) {
 		log.Fatalf("Unexpected TestMultiException() %#v ", err)
 	}
 
-	// Only run checks on message size if testing over NATS
+	// Only check message size exceptions with NATS transports
 	if *transport != "http" {
 		// Request at the 1mb limit
 		request := make([]byte, 1024 * 1024)

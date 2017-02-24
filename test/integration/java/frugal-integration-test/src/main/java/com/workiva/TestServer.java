@@ -25,14 +25,10 @@ import com.workiva.frugal.middleware.ServiceMiddleware;
 import com.workiva.frugal.processor.FProcessor;
 import com.workiva.frugal.protocol.FProtocolFactory;
 import com.workiva.frugal.provider.FScopeProvider;
-import com.workiva.frugal.server.FDefaultNettyHttpProcessor;
-import com.workiva.frugal.server.FNatsServer;
-import com.workiva.frugal.server.FNettyHttpHandler;
-import com.workiva.frugal.server.FNettyHttpProcessor;
-import com.workiva.frugal.server.FServer;
-import com.workiva.frugal.transport.FPublisherTransportFactory;
+import com.workiva.frugal.server.*;
 import com.workiva.frugal.transport.FNatsPublisherTransport;
 import com.workiva.frugal.transport.FNatsSubscriberTransport;
+import com.workiva.frugal.transport.FPublisherTransportFactory;
 import com.workiva.frugal.transport.FSubscriberTransportFactory;
 import frugal.test.Event;
 import frugal.test.EventsPublisher;
@@ -95,7 +91,7 @@ public class TestServer {
                 System.exit(1);
             }
 
-            TProtocolFactory protocolFactory = utils.whichProtocolFactory(protocol_type);
+            TProtocolFactory protocolFactory = com.workiva.utils.whichProtocolFactory(protocol_type);
             FProtocolFactory fProtocolFactory = new FProtocolFactory(protocolFactory);
 
             ConnectionFactory cf = new ConnectionFactory("nats://localhost:4222");
@@ -238,6 +234,7 @@ public class TestServer {
             return new InvocationHandler<T>(next) {
                 @Override
                 public Object invoke(Method method, Object receiver, Object[] args) throws Throwable {
+//                    System.out.printf("FContext is: %s", args[0]);
                     Object[] subArgs = Arrays.copyOfRange(args, 1, args.length);
                     System.out.printf("%s(%s)\n", method.getName(), Arrays.toString(subArgs));
                     if (method.getName().equals("testOneway")) {
