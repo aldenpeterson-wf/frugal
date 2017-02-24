@@ -26,7 +26,15 @@ cd ${FRUGAL_HOME}
 #frugal --gen dart -r --out='test/integration/dart/gen-dart' test/integration/frugalTest.frugal
 
 # Set everything up in parallel (code generation is fast enough to not require in parallel)
-go run scripts/skynet/cross/cross_setup.go
+
+export FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal
+
+# Dart Dependencies
+cd $FRUGAL_HOME/test/integration/dart/test_client
+rm -rf .packages packages
+##rm -rf bin/.packages bin/packages
+pub upgrade
+pub get --offline
 
 # Run cross tests - want to report any failures, so don't allow command to exit
 # without cleaning up
