@@ -14,10 +14,4 @@ pub get --offline
 # without cleaning up
 cd ${FRUGAL_HOME}
 
-sleep 15
-if go run test/integration/test.go test/integration/tests.json; then
-    /testing/scripts/skynet/test_cleanup.sh
-else
-    /testing/scripts/skynet/test_cleanup.sh
-    exit 1
-fi
+sleep 60

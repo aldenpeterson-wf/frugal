@@ -1,3 +1,0 @@
-namespace go vendor_namespace (vendor="github.com/Workiva/some/vendored/place/vendor_namespace")
-
-struct Item {}

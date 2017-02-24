@@ -1,3 +1,0 @@
-namespace dart subdir_include_ns
-
-struct A {}
