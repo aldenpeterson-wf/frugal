@@ -25,5 +25,5 @@ ln -s /testing/ /go/src/github.com/Workiva/frugal
 
 
 # Start gnatsd
-gnatsd &
+#gnatsd &
 
