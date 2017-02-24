@@ -27,7 +27,7 @@ set -exo pipefail
 
 # Set everything up in parallel (code generation is fast enough to not require in parallel)
 
-export FRUGAL_HOME=/testing
+export FRUGAL_HOME=/frugal
 
 # Dart Dependencies
 cd $FRUGAL_HOME/test/integration/dart/test_client
