@@ -2,10 +2,10 @@
 
 set -exo pipefail
 
-./scripts/skynet/skynet_setup.sh
-
-export FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal
-cd ${FRUGAL_HOME}
+#./scripts/skynet/skynet_setup.sh
+#
+#export FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal
+#cd ${FRUGAL_HOME}
 
 ## Remove any leftover log files (necessary for skynet-cli)
 #rm -rf test/integration/log/*
@@ -27,7 +27,7 @@ cd ${FRUGAL_HOME}
 
 # Set everything up in parallel (code generation is fast enough to not require in parallel)
 
-export FRUGAL_HOME=$GOPATH/src/github.com/Workiva/frugal
+export FRUGAL_HOME=/testing
 
 # Dart Dependencies
 cd $FRUGAL_HOME/test/integration/dart/test_client
@@ -40,6 +40,7 @@ pub get --offline
 # without cleaning up
 cd ${FRUGAL_HOME}
 
+sleep 15
 if go run test/integration/test.go test/integration/tests.json; then
     /testing/scripts/skynet/test_cleanup.sh
 else
