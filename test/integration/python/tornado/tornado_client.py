@@ -141,10 +141,12 @@ def test_rpc(client, ctx, transport):
         method = getattr(client, rpc)
         args = vals['args']
         expected_result = vals['expected_result']
+        ctx = FContext(rpc)
         result = None
 
         try:
             if args:
+
                 result = yield method(ctx, *args)
             else:
                 result = yield method(ctx)
@@ -184,9 +186,9 @@ def client_middleware(next):
 
 def log_future(future):
     try:
-        print("{}".format(future.result()))
+        print(u"{}".format(future.result()))
     except Exception as ex:
-        print("{}".format(ex))
+        print(u"{}".format(ex))
 
 
 if __name__ == '__main__':
