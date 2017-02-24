@@ -80,12 +80,15 @@ func serverLoggingMiddleware(called chan<- bool) frugal.ServiceMiddleware {
 			// If first argument after the fContext is a byte array
 			// with a length > 10, print the length (size) instead
 			// of the contents
-			if len(args) > 1 {
-				a := args[1].(interface{})
+			fmt.Print("This should print on every call")
+			if ret[:1] != nil {
+				fmt.Print("Return length > 0")
+				a := ret[1].(interface{})
 				byteArray, ok := a.([]byte)
 				if ok {
 					isByteArray = true
 					length = len(byteArray)
+					fmt.Print("This is a byte array")
 				}
 			}
 			if isByteArray && length > 10 {

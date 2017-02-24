@@ -189,6 +189,7 @@ def log_future(future):
         print(u"{}".format(future.result()))
     except Exception as ex:
         print(u"{}".format(ex))
+        print(type(ex))
 
 
 if __name__ == '__main__':
