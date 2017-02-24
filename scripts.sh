@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -ex
 
-cd /z
+cd /scripts
 
-# Run pub upgrade a few times to likely fail it
+# Run pub upgrade a few times to likely somewhere catastrophically
 pub upgrade
 pub upgrade
 pub upgrade
