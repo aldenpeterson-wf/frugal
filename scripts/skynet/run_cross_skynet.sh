@@ -26,13 +26,13 @@ set -exo pipefail
 #frugal --gen dart -r --out='test/integration/dart/gen-dart' test/integration/frugalTest.frugal
 
 # Set everything up in parallel (code generation is fast enough to not require in parallel)
-
+#
 export FRUGAL_HOME=/frugal
 
 # Dart Dependencies
-cd $FRUGAL_HOME/test/integration/dart/test_client
-rm -rf .packages packages
-##rm -rf bin/.packages bin/packages
+#cd $FRUGAL_HOME/test/integration/dart/test_client
+#rm -rf .packages packages
+cd $FRUGAL_HOME
 pub upgrade
 pub get --offline
 
