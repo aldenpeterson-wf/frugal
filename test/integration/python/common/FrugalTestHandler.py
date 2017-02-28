@@ -2,6 +2,7 @@ import six, sys
 import time
 
 from thrift.Thrift import TApplicationException
+from thrift.transport.TTransport import TTransportException
 
 from frugal_test.f_FrugalTest import Iface, Xtruct, Xception, Xception2
 

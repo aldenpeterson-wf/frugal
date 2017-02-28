@@ -274,13 +274,6 @@ func callEverything(client *frugaltest.FFrugalTestClient) {
 		log.Fatalf("Unexpected TestException() result expected %#v, got %#v ", xcept, err)
 	}
 
-	// TODO: Need to handle the test case where an untyped exception is thrown. Handle reopening the transport after frugal freaks out.
-	// err = client.TestException(ctx, "TException") // This is closing the transport
-	// _, ok := err.(thrift.TApplicationException)
-	// if err == nil || !ok {
-	// 	log.Fatalf("Unexpected TestException() result expected ApplicationError, got %#v ", err)
-	// }
-
 	ign, err := client.TestMultiException(ctx, "Xception", "ignoreme")
 	if ign != nil || err == nil {
 		log.Fatal("Expecting exception in TestMultiException() call")
@@ -315,33 +308,48 @@ func callEverything(client *frugaltest.FFrugalTestClient) {
 		// Request at the 1mb limit
 		request := make([]byte, 1024 * 1024)
 		err = client.TestRequestTooLarge(ctx, request)
-		if err == nil {
-			log.Fatal("TestRequestTooLarge() succeeded unexpectedly")
-		} else if err.Error() != "*frugaltest.FrugalTestTestRequestTooLargeArgs.request (1) field write error: Buffer size reached (1048576)" {
-			log.Fatalf("Unexpected TestRequestTooLarge() %v", err)
+		switch e := err.(type){
+		case thrift.TTransportException:
+			if e.TypeId() != 100{
+				log.Fatalf("Unexpected error code %v",
+					e.TypeId())
+			}
+			log.Println("TApplicationException")
+		default:
+			log.Fatalf("Unexpected TestRequestTooLarge() %v", e)
 		}
 
 		// Request 4 bytes less than the 1mb limit
 		request = make([]byte, 1024 * 1024 - 4)
 		err = client.TestRequestAlmostTooLarge(ctx, request)
-		if err == nil {
-			log.Fatal("TestAlmostRequestTooLarge() succeeded unexpectedly")
-		} else if err.Error() != "*frugaltest.FrugalTestTestRequestAlmostTooLargeArgs.request (1) field write error: Buffer size reached (1048576)" {
-			log.Fatalf("Unexpected TestRequestTooLarge() %v", err)
+		switch e := err.(type){
+		case thrift.TTransportException:
+			if e.TypeId() != 100{
+				log.Fatalf("Unexpected error code %v",
+					e.TypeId())
+			}
+			log.Println("TApplicationException")
+		default:
+			log.Fatalf("Unexpected TestRequestTooLarge() %v", e)
 		}
 
-		// Request below the 1mb limit
 		request = make([]byte, 4)
 		response, err := client.TestResponseTooLarge(ctx, request)
-		if err.Error() != "*frugaltest.FrugalTestTestResponseTooLargeResult.success (0) field write error: Buffer size reached (1048576)" {
-			log.Fatalf("Unexpected error: %v", err.Error())
-		} else if response != nil {
-			log.Fatalf("\n Unexpected response: %v \n", response)
+		switch e := err.(type){
+		case thrift.TTransportException:
+			if e.TypeId() != 101{
+				log.Fatalf("Unexpected error code %v",
+				e.TypeId())
+			}
+			log.Println("TApplicationException")
+		default:
+			log.Fatalf("Unexpected TestRequestTooLarge() %v",
+				response)
 		}
+	}
 
-		err = client.TestOneway(ctx, 1)
-		if err != nil {
-			log.Fatal("Unexpected error in TestOneway() call: ", err)
-		}
+	err = client.TestOneway(ctx, 1)
+	if err != nil {
+		log.Fatal("Unexpected error in TestOneway() call: ", err)
 	}
 }

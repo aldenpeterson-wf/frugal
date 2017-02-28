@@ -150,14 +150,10 @@ def client_middleware(next):
     def handler(method, args):
         global middleware_called
         middleware_called = True
-<<<<<<< HEAD
         if len(args) > 1 and sys.getsizeof(args[1]) > 1000000:
             print("{}({}) = ".format(method.__name__, sys.getsizeof(args[1])), end="")
         else:
             print("{}({}) = ".format(method.__name__, args[1:]), end="")
-=======
-        print(u"{}({}) = ".format(method.__name__, args[1:], end=""))
->>>>>>> 9f0cda69f97a27775abdd9f642a089dfe2bdb673
         # ret is a <class 'coroutine'>
         ret = next(method, args)
         # Use asyncIO.ensure_future to convert the coroutine to a task

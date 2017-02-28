@@ -28,6 +28,7 @@ func (t *TornadoGenerator) GenerateServiceImports(file *os.File, s *parser.Servi
 	imports += "from frugal.util.deprecate import deprecated\n"
 	imports += "from thrift.Thrift import TApplicationException\n"
 	imports += "from thrift.Thrift import TMessageType\n"
+	imports += "from thrift.transport.TTransport import TTransportException\n"
 	imports += "from tornado import gen\n"
 	imports += "from tornado.concurrent import Future\n\n"
 
@@ -117,7 +118,7 @@ func (t *TornadoGenerator) generateClientMethod(method *parser.Method) string {
 	contents += tabtabtab + "x.read(iprot)\n"
 	contents += tabtabtab + "iprot.readMessageEnd()\n"
 	contents += tabtabtab + "if x.type == TApplicationExceptionType.RESPONSE_TOO_LARGE:\n"
-	contents += tabtabtabtab + "raise TTransportException(type=TTransportExceptionType.REQUEST_TOO_LARGE, message=x.message)\n"
+	contents += tabtabtabtab + "raise TTransportException(type=TTransportExceptionType.RESPONSE_TOO_LARGE, message=x.message)\n"
 	contents += tabtabtab + "raise x\n"
 	contents += tabtab + fmt.Sprintf("result = %s_result()\n", method.Name)
 	contents += tabtab + "result.read(iprot)\n"
