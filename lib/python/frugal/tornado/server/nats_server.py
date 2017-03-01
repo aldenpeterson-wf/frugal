@@ -74,7 +74,6 @@ class FNatsServer(FServer):
         frame_size = struct.unpack('!I', msg.data[:4])[0]
         if frame_size > _NATS_MAX_MESSAGE_SIZE - 4:
             logger.warning("Invalid frame size, dropping message.")
-            raise TTransportException.REQUEST_TOO_LARGE
             return
 
         # Read and process frame (exclude first 4 bytes which

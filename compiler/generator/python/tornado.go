@@ -201,7 +201,7 @@ func (t *TornadoGenerator) generateProcessorFunction(method *parser.Method) stri
 		contents += tabtabtabtab + "oprot.writeMessageEnd()\n"
 		contents += tabtabtabtab + "oprot.get_transport().flush()\n"
 		contents += tabtabtab + "except TTransportException as e:\n"
-		contents += tabtabtabtab + "if e.type == TTransportExceptionType.RESPONSE_TOO_LARGE:\n"
+		contents += tabtabtabtab + "if e.type == TTransportExceptionType.RESPONSE_TOO_LARGE or TApplicationExceptionType.RESPONSE_TOO_LARGE:\n"
 		contents += tabtabtabtabtab + fmt.Sprintf(
 			"raise _write_application_exception(ctx, oprot, \"%s\", ex_code=TApplicationExceptionType.RESPONSE_TOO_LARGE, message=e.message)\n", methodLower)
 		contents += tabtabtabtab + "else:\n"
