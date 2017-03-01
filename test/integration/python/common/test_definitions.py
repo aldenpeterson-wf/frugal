@@ -131,21 +131,21 @@ def rpc_test_definitions(transport):
 
     # Only check message size exceptions with NATS transports
     if transport != "http":
-        e = TTransportException(TTransportExceptionType.REQUEST_TOO_LARGE)
-        tests['testRequestTooLarge'] = dict(
-            args=[six.binary_type(b'\x00' * 1024 * 1024)],
-            expected_result=e
-        )
-
-        e = TTransportException(TTransportExceptionType.REQUEST_TOO_LARGE)
-        tests['testRequestAlmostTooLarge'] = dict(
-            args=[six.binary_type(b'\x00' * (1024 * 1024 - 1))],
-            expected_result=e
-        )
+        # e = TTransportException(TTransportExceptionType.REQUEST_TOO_LARGE)
+        # tests['testRequestTooLarge'] = dict(
+        #     args=[six.binary_type(b'\x00' * 1024 * 1024)],
+        #     expected_result=e
+        # )
+        #
+        # e = TTransportException(TTransportExceptionType.REQUEST_TOO_LARGE)
+        # tests['testRequestAlmostTooLarge'] = dict(
+        #     args=[six.binary_type(b'\x00' * (1024 * 1024 - 1))],
+        #     expected_result=e
+        # )
 
         e = TTransportException(TTransportExceptionType.RESPONSE_TOO_LARGE)
         tests['testResponseTooLarge'] = dict(
-            args=[six.binary_type(b'\x00' * 4)],
+            args=[six.binary_type(b'1' * 4)],
             expected_result=e
         )
 

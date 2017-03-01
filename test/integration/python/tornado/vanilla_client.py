@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import sys
 
@@ -83,7 +85,7 @@ def client_middleware(next):
     def handler(method, args):
         global middleware_called
         middleware_called = True
-        print("{}({}) = ".format(method.__name__, args[1:]), end="")
+        print(u"{}({}) = ".format(method.im_func.func_name, args[1:], end=""))
         ret = next(method, args)
         print(u"{}".format(ret))
         return ret
