@@ -210,7 +210,7 @@ public class FrugalTestHandler implements FFrugalTest.Iface {
         }
 
         @Override
-        public java.nio.ByteBuffer testResponseTooLarge(FContext ctx, java.nio.ByteBuffer request) throws TException {
+        public java.nio.ByteBuffer testResponseTooLarge(FContext ctx, java.nio.ByteBuffer request) {
             java.nio.ByteBuffer response = ByteBuffer.allocate(1024*1024);
             return response;
         }

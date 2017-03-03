@@ -106,6 +106,7 @@ public class TestServer {
             // Start subscriber for pub/sub test
             new Subscriber(fProtocolFactory, port).run();
 
+            // Hand the transport to the handler
             FFrugalTest.Iface handler = new FrugalTestHandler();
             CountDownLatch called = new CountDownLatch(1);
             FFrugalTest.Processor processor = new FFrugalTest.Processor(handler, new ServerMiddleware(called));

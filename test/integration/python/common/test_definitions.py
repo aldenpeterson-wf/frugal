@@ -145,7 +145,7 @@ def rpc_test_definitions(transport):
 
         e = TTransportException(TTransportExceptionType.RESPONSE_TOO_LARGE)
         tests['testResponseTooLarge'] = dict(
-            args=[six.binary_type(b'1' * 4)],
+            args=[six.binary_type(b'0' * 4)],
             expected_result=e
         )
 

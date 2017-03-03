@@ -135,7 +135,7 @@ public class TestClient {
         FFrugalTest.Client testClient = new FFrugalTest.Client(new FServiceProvider(fTransport, new FProtocolFactory(protocolFactory)), new ClientMiddleware());
 
         Insanity insane = new Insanity();
-        FContext context = new FContext("");
+        FContext context;
 
         int returnCode = 0;
         try {
