@@ -65,7 +65,7 @@ public class TestServer {
             // default testing parameters, overwritten in Python runner
             int port = 9090;
             String transport_type = "stateless";
-            String protocol_type = "binary";
+            String protocol_type = "json";
 
             try {
                 for (String arg : args) {
@@ -107,7 +107,7 @@ public class TestServer {
             new Subscriber(fProtocolFactory, port).run();
 
             // Hand the transport to the handler
-            FFrugalTest.Iface handler = new FrugalTestHandler();
+            FFrugalTest.Iface handler = new com.workiva.FrugalTestHandler();
             CountDownLatch called = new CountDownLatch(1);
             FFrugalTest.Processor processor = new FFrugalTest.Processor(handler, new ServerMiddleware(called));
             FServer server = null;
@@ -126,7 +126,7 @@ public class TestServer {
             // Start a healthcheck server for the cross language tests
             if (transport_type.equals("stateless")) {
                 try {
-                    new HealthCheck(port);
+                    new com.workiva.HealthCheck(port);
                 } catch (IOException e) {
                     System.out.println(e.getMessage());
                 }
@@ -143,12 +143,12 @@ public class TestServer {
 
 
              // Wait for the middleware to be invoked, fail if it exceeds the longest client timeout (currently 20 sec)
-            if (called.await(20, TimeUnit.SECONDS)) {
-                System.out.println("Server middleware called successfully");
-            } else {
-                System.out.println("Server middleware not called within 20 seconds");
-                System.exit(1);
-            }
+//            if (called.await(20, TimeUnit.SECONDS)) {
+//                System.out.println("Server middleware called successfully");
+//            } else {
+//                System.out.println("Server middleware not called within 20 seconds");
+//                System.exit(1);
+//            }
 
         } catch (Exception x) {
             x.printStackTrace();
@@ -192,7 +192,7 @@ public class TestServer {
                 b.group(bossGroup, workerGroup)
                         .channel(NioServerSocketChannel.class)
                         .handler(new LoggingHandler(LogLevel.INFO))
-                        .childHandler(new NettyHttpInitializer(handlerFactory));
+                        .childHandler(new com.workiva.NettyHttpInitializer(handlerFactory));
 
                 Channel ch = b.bind(port).sync().channel();
 
@@ -278,12 +278,12 @@ public class TestServer {
                         EventsPublisher.Iface publisher = new EventsPublisher.Client(provider);
                         try {
                             publisher.open();
-                            String preamble = context.getRequestHeader(utils.PREAMBLE_HEADER);
+                            String preamble = context.getRequestHeader(com.workiva.utils.PREAMBLE_HEADER);
                             if (preamble == null || "".equals(preamble)) {
                                 System.out.println("Client did not provide preamble header");
                                 return;
                             }
-                            String ramble = context.getRequestHeader(utils.RAMBLE_HEADER);
+                            String ramble = context.getRequestHeader(com.workiva.utils.RAMBLE_HEADER);
                             if (ramble == null || "".equals(ramble)) {
                                 System.out.println("Client did not provide ramble header");
                                 return;
